@@ -30,14 +30,14 @@ const caption = PT_Sans({
 });
 
 const SCENES = [
-  { key: "hero", duration: 4000 },
-  { key: "invite-hero", duration: 7000 },
-  { key: "gallery", duration: 7000 },
-  { key: "blessing", duration: 7000 },
-  { key: "date", duration: 4000 },
-  { key: "venue", duration: 7000 },
-  { key: "hosts", duration: 4000 },
-  { key: "rsvp", duration: 5000 },
+  { key: "hero", duration: 3000 },
+  { key: "invite-hero", duration: 5000 },
+  { key: "gallery", duration: 5000 },
+  { key: "blessing", duration: 3000 },
+  { key: "date", duration: 2000 },
+  { key: "venue", duration: 5000 },
+  { key: "hosts", duration: 2000 },
+  { key: "rsvp", duration: 1000 },
 ] as const;
 
 function useAutoplaySections(active: boolean) {
