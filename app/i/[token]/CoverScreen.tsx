@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { CircularMotif, OrnamentDivider, OrnateCorner } from "./Ornaments";
 
 export default function CoverScreen({
-  coupleNames,
+  coupleNames = "Эрдэнэмандал & Чанцалдулам",
   eventLabel,
   dateDisplay,
   onOpen,

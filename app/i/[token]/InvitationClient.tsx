@@ -11,6 +11,7 @@ import {
   DateMedallion,
   CircularMotif,
 } from "./Ornaments";
+import HorseRaceSection from "./HorseRaceSection";
 
 const display = Cormorant_Garamond({
   subsets: ["cyrillic", "latin"],
@@ -30,14 +31,15 @@ const caption = PT_Sans({
 });
 
 const SCENES = [
-  { key: "hero", duration: 4000 },
-  { key: "invite-hero", duration: 7000 },
-  { key: "gallery", duration: 7000 },
-  { key: "blessing", duration: 7000 },
-  { key: "date", duration: 4000 },
-  { key: "venue", duration: 7000 },
-  { key: "hosts", duration: 4000 },
-  { key: "rsvp", duration: 5000 },
+  { key: "hero", duration: 3000 },
+  { key: "invite-hero", duration: 5000 },
+  { key: "gallery", duration: 5000 },
+  { key: "blessing", duration: 3000 },
+  { key: "date", duration: 2000 },
+  { key: "venue", duration: 5000 },
+  { key: "horse", duration: 2000 },
+  { key: "hosts", duration: 2000 },
+  { key: "rsvp", duration: 1000 },
 ] as const;
 
 function useAutoplaySections(active: boolean) {
@@ -128,8 +130,12 @@ const CONTENT = {
     { role: "Охин", names: "Баяржаргал" },
   ],
   contactPhone: "+976 9899 0593",
-  musicSrc: "/assets/music.mp3",
-  galleryPhotos: [] as string[],
+  musicSrc: "/assets/hurim-duu.mp3",
+  galleryPhotos: [
+    "/images/gallery/ger-exterior.png",
+    "/images/gallery/ger-interior.png",
+    "/images/gallery/pattern.png",
+  ],
   blessing: [
     "Эцгийн ариун голомтыг",
     "Ган тулгандаа бадрааж",
@@ -389,10 +395,11 @@ export default function InvitationClient({ name }: { name: string }) {
     <div className={`${display.variable} ${body.variable} ${caption.variable}`}>
       {stage === "intro" && (
         <IntroScene
-          coupleInitials={initials}
-          coupleNames={CONTENT.coupleNames}
+          coupleInitials="М & П"
+          coupleNames="Мөнгөншагай & Пүрэвням"
+          musicSrc="/assets/morin-huur.mp3"
+          musicVolume={0.5}
           onDone={() => setStage("cover")}
-          onSkip={() => setStage("cover")}
         />
       )}
 
@@ -545,9 +552,6 @@ export default function InvitationClient({ name }: { name: string }) {
             <section ref={setRef("blessing")} className="section blessing">
               <SectionMotif side="right" size={260} />
               <p className="section-label">Ерөөл</p>
-              <div className="hero-hee">
-                <img src="/images/hee-1.png" alt="Wedding crest" />
-              </div>
               <p className="blessing-verse">
                 {CONTENT.blessing.map((line, i) => (
                   <Reveal key={i} delay={i * 160} className="blessing-line">
@@ -555,6 +559,9 @@ export default function InvitationClient({ name }: { name: string }) {
                   </Reveal>
                 ))}
               </p>
+              <div className="hero-hee">
+                <img src="/images/hee-1.png" alt="Wedding crest" />
+              </div>
             </section>
           </Reveal>
 
@@ -617,6 +624,14 @@ export default function InvitationClient({ name }: { name: string }) {
               >
                 Газрын зурагт нээх
               </a>
+            </section>
+          </Reveal>
+
+          <OrnamentDivider />
+
+          <Reveal className="reveal--full">
+            <section ref={setRef("horse")}>
+              <HorseRaceSection />
             </section>
           </Reveal>
 
@@ -1214,7 +1229,7 @@ export default function InvitationClient({ name }: { name: string }) {
         .hero-countdown-label {
           font-family: var(--font-display), serif;
           font-style: italic;
-          color: var(--maroon);
+          color: var(--green);
           margin-top: 6px;
         }
         .countdown-grid {
@@ -1475,18 +1490,16 @@ export default function InvitationClient({ name }: { name: string }) {
         .section-label {
           position: relative;
           z-index: 1;
-          font-family: var(--font-caption), sans-serif;
+          font-family: var(--font-display), serif;
           letter-spacing: 0.28em;
-          text-transform: uppercase;
-          font-size: 0.72rem;
-          color: var(--maroon);
+          font-size: 1rem;
+          color: var(--green);
           margin-bottom: 18px;
         }
         .gallery .section-label {
           padding: 0 32px;
         }
 
-        /* ----- ЗОЧНЫ УРИЛГА (personal invitation hero) ----- */
         .invite-card {
           position: relative;
 
