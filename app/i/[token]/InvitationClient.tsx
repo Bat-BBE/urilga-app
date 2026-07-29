@@ -545,9 +545,6 @@ export default function InvitationClient({ name }: { name: string }) {
             <section ref={setRef("blessing")} className="section blessing">
               <SectionMotif side="right" size={260} />
               <p className="section-label">Ерөөл</p>
-              <div className="hero-hee">
-                <img src="/images/hee-1.png" alt="Wedding crest" />
-              </div>
               <p className="blessing-verse">
                 {CONTENT.blessing.map((line, i) => (
                   <Reveal key={i} delay={i * 160} className="blessing-line">
@@ -555,6 +552,9 @@ export default function InvitationClient({ name }: { name: string }) {
                   </Reveal>
                 ))}
               </p>
+              <div className="hero-hee">
+                <img src="/images/hee-1.png" alt="Wedding crest" />
+              </div>
             </section>
           </Reveal>
 
@@ -1214,7 +1214,7 @@ export default function InvitationClient({ name }: { name: string }) {
         .hero-countdown-label {
           font-family: var(--font-display), serif;
           font-style: italic;
-          color: var(--maroon);
+          color: var(--green);
           margin-top: 6px;
         }
         .countdown-grid {
@@ -1475,11 +1475,10 @@ export default function InvitationClient({ name }: { name: string }) {
         .section-label {
           position: relative;
           z-index: 1;
-          font-family: var(--font-caption), sans-serif;
+          font-family: var(--font-display), serif;
           letter-spacing: 0.28em;
-          text-transform: uppercase;
-          font-size: 0.72rem;
-          color: var(--maroon);
+          font-size: 1rem;
+          color: var(--green);
           margin-bottom: 18px;
         }
         .gallery .section-label {
