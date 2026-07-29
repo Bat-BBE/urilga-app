@@ -16,6 +16,9 @@ export default function HorseRaceSection({
         <div className="race-track-fade race-track-fade--left" />
         <div className="race-track-fade race-track-fade--right" />
       </div>
+      <div className="hero-hee">
+        <img src="/images/hee-1.png" alt="Wedding crest" />
+      </div>
 
       <p className="host-names">{label}</p>
 

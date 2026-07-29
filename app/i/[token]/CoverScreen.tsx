@@ -2,23 +2,32 @@
 
 import { useMemo, useState } from "react";
 import { CircularMotif, OrnamentDivider, OrnateCorner } from "./Ornaments";
+import { useMusic } from "./MusicProvider";
 
 export default function CoverScreen({
-  coupleNames = "Эрдэнэмандал & Чанцалдулам",
+  coupleNames,
   eventLabel,
   dateDisplay,
+  musicVolume = 0.55,
   onOpen,
 }: {
   coupleNames: string;
   eventLabel: string;
   dateDisplay: string;
+  musicVolume?: number;
   onOpen: () => void;
 }) {
   const [opening, setOpening] = useState(false);
+  const { play } = useMusic();
 
   function handleOpen() {
     if (opening) return;
     setOpening(true);
+
+    // The tap is a genuine user gesture, so this is guaranteed to be
+    // allowed to play — no "tap to enable sound" fallback needed here.
+    play(musicVolume, 900);
+
     setTimeout(onOpen, 1000);
   }
 
