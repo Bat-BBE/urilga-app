@@ -132,9 +132,12 @@ const CONTENT = {
   contactPhone: "+976 9899 0593",
   musicSrc: "/assets/hurim-duu.mp3",
   galleryPhotos: [
-    "/images/gallery/ger-exterior.png",
-    "/images/gallery/ger-interior.png",
-    "/images/gallery/pattern.png",
+    "/images/gallery/hero-1.jpg",
+    "/images/gallery/hero-2.jpg",
+    "/images/gallery/hero-3.jpg",
+    "/images/gallery/hero-4.jpg",
+    "/images/gallery/hero-5.jpg",
+    "/images/gallery/hero-6.jpg",
   ],
   blessing: [
     "Эцгийн ариун голомтыг",
