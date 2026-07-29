@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 const TOTAL_MS = 7600;
 const EMBER_COUNT = 20;
@@ -15,16 +15,26 @@ const MANDALA_TICKS = 24;
 export default function IntroScene({
   coupleInitials,
   coupleNames = "Мөнгөншагай & Пүрэвням",
+  musicSrc,
+  musicVolume = 0.55,
   onDone,
   onSkip,
 }: {
   coupleInitials?: string;
   coupleNames?: string;
+  /** Optional path to a background music file, e.g. "/music/wedding-theme.mp3" */
+  musicSrc?: string;
+  /** Target volume for the music once it has faded in (0 - 1) */
+  musicVolume?: number;
   onDone: () => void;
   onSkip?: () => void;
 }) {
   const [fadingOut, setFadingOut] = useState(false);
   const [reduced, setReduced] = useState(false);
+  const [needsTapForSound, setNeedsTapForSound] = useState(false);
+
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const fadeIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
     const mql = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -40,6 +50,86 @@ export default function IntroScene({
     return () => clearTimeout(doneTimer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [reduced]);
+
+  // ---- Background music: fade in on start, fade out on close ----
+  function clearFade() {
+    if (fadeIntervalRef.current) {
+      clearInterval(fadeIntervalRef.current);
+      fadeIntervalRef.current = null;
+    }
+  }
+
+  function fadeAudioTo(
+    target: number,
+    durationMs: number,
+    onComplete?: () => void,
+  ) {
+    const audio = audioRef.current;
+    if (!audio) return;
+    clearFade();
+    const steps = 24;
+    const stepTime = durationMs / steps;
+    const start = audio.volume;
+    const diff = target - start;
+    let i = 0;
+    fadeIntervalRef.current = setInterval(() => {
+      i += 1;
+      const t = i / steps;
+      audio.volume = Math.min(1, Math.max(0, start + diff * t));
+      if (i >= steps) {
+        clearFade();
+        onComplete?.();
+      }
+    }, stepTime);
+  }
+
+  useEffect(() => {
+    if (!musicSrc) return;
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    audio.volume = 0;
+    audio.loop = true;
+
+    const startPlayback = () => {
+      audio
+        .play()
+        .then(() => {
+          setNeedsTapForSound(false);
+          fadeAudioTo(musicVolume, 1800);
+        })
+        .catch(() => {
+          // Autoplay blocked — wait for the first user interaction.
+          setNeedsTapForSound(true);
+        });
+    };
+
+    startPlayback();
+
+    const resumeOnInteraction = () => {
+      startPlayback();
+      window.removeEventListener("pointerdown", resumeOnInteraction);
+      window.removeEventListener("keydown", resumeOnInteraction);
+    };
+    window.addEventListener("pointerdown", resumeOnInteraction);
+    window.addEventListener("keydown", resumeOnInteraction);
+
+    return () => {
+      clearFade();
+      window.removeEventListener("pointerdown", resumeOnInteraction);
+      window.removeEventListener("keydown", resumeOnInteraction);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [musicSrc]);
+
+  useEffect(() => {
+    if (!musicSrc) return;
+    if (!fadingOut) return;
+    fadeAudioTo(0, 700, () => {
+      audioRef.current?.pause();
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fadingOut]);
 
   function handleSkip() {
     setFadingOut(true);
@@ -174,6 +264,27 @@ export default function IntroScene({
         fadingOut ? " intro--closing" : ""
       }`}
     >
+      {musicSrc ? (
+        <>
+          {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
+          <audio ref={audioRef} src={musicSrc} preload="auto" />
+          {needsTapForSound && !fadingOut ? (
+            <button
+              type="button"
+              className="intro-sound-hint"
+              onClick={() => {
+                audioRef.current?.play().then(() => {
+                  setNeedsTapForSound(false);
+                  fadeAudioTo(musicVolume, 1200);
+                });
+              }}
+            >
+              ♪ Дуу нээх
+            </button>
+          ) : null}
+        </>
+      ) : null}
+
       {!reduced && (
         <>
           <div className="intro-vignette" />
@@ -441,6 +552,33 @@ export default function IntroScene({
 
       <div className="intro-close-iris" />
       <style jsx>{`
+        .intro-sound-hint {
+          position: absolute;
+          top: 24px;
+          left: 50%;
+          transform: translateX(-50%);
+          z-index: 12;
+          background: rgba(15, 10, 8, 0.55);
+          border: 1px solid rgba(230, 190, 130, 0.4);
+          color: #f3d9a4;
+          font-family: "PT Sans", sans-serif;
+          font-size: 0.72rem;
+          letter-spacing: 0.14em;
+          text-transform: uppercase;
+          padding: 8px 16px;
+          border-radius: 999px;
+          cursor: pointer;
+          animation: sound-hint-pulse 1.8s ease-in-out infinite;
+        }
+        @keyframes sound-hint-pulse {
+          0%,
+          100% {
+            opacity: 0.75;
+          }
+          50% {
+            opacity: 1;
+          }
+        }
         .intro {
           position: fixed;
           inset: 0;

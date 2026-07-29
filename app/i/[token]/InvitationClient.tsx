@@ -11,6 +11,7 @@ import {
   DateMedallion,
   CircularMotif,
 } from "./Ornaments";
+import HorseRaceSection from "./HorseRaceSection";
 
 const display = Cormorant_Garamond({
   subsets: ["cyrillic", "latin"],
@@ -36,6 +37,7 @@ const SCENES = [
   { key: "blessing", duration: 3000 },
   { key: "date", duration: 2000 },
   { key: "venue", duration: 5000 },
+  { key: "horse", duration: 2000 },
   { key: "hosts", duration: 2000 },
   { key: "rsvp", duration: 1000 },
 ] as const;
@@ -128,7 +130,7 @@ const CONTENT = {
     { role: "Охин", names: "Баяржаргал" },
   ],
   contactPhone: "+976 9899 0593",
-  musicSrc: "/assets/music.mp3",
+  musicSrc: "/assets/hurim-duu.mp3",
   galleryPhotos: [
     "/images/gallery/ger-exterior.png",
     "/images/gallery/ger-interior.png",
@@ -393,10 +395,11 @@ export default function InvitationClient({ name }: { name: string }) {
     <div className={`${display.variable} ${body.variable} ${caption.variable}`}>
       {stage === "intro" && (
         <IntroScene
-          coupleInitials={initials}
-          coupleNames={CONTENT.coupleNames}
+          coupleInitials="М & П"
+          coupleNames="Мөнгөншагай & Пүрэвням"
+          musicSrc="/assets/morin-huur.mp3"
+          musicVolume={0.5}
           onDone={() => setStage("cover")}
-          onSkip={() => setStage("cover")}
         />
       )}
 
@@ -621,6 +624,14 @@ export default function InvitationClient({ name }: { name: string }) {
               >
                 Газрын зурагт нээх
               </a>
+            </section>
+          </Reveal>
+
+          <OrnamentDivider />
+
+          <Reveal className="reveal--full">
+            <section ref={setRef("horse")}>
+              <HorseRaceSection />
             </section>
           </Reveal>
 

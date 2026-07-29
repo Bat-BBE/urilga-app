@@ -11,6 +11,7 @@ import {
   DateMedallion,
   CircularMotif,
 } from "@/app/i/[token]/Ornaments";
+import HorseRaceSection from "@/app/i/[token]/HorseRaceSection";
 
 const display = Cormorant_Garamond({
   subsets: ["cyrillic", "latin"],
@@ -36,6 +37,7 @@ const SCENES = [
   { key: "blessing", duration: 3000 },
   { key: "date", duration: 2000 },
   { key: "venue", duration: 5000 },
+  { key: "horse", duration: 2000 },
   { key: "hosts", duration: 2000 },
   { key: "rsvp", duration: 1000 },
 ] as const;
@@ -128,7 +130,7 @@ const CONTENT = {
     { role: "Охин", names: "Баяржаргал" },
   ],
   contactPhone: "+976 9899 0593",
-  musicSrc: "/assets/music.mp3",
+  musicSrc: "/assets/hurim-duu.mp3",
   galleryPhotos: [] as string[],
   blessing: [
     "Эцгийн ариун голомтыг",
@@ -616,6 +618,13 @@ export default function InvitationAllUser() {
               >
                 Газрын зурагт нээх
               </a>
+            </section>
+          </Reveal>
+
+          <OrnamentDivider />
+          <Reveal className="reveal--full">
+            <section ref={setRef("horse")}>
+              <HorseRaceSection />
             </section>
           </Reveal>
 
