@@ -33,7 +33,7 @@ const caption = PT_Sans({
 const SCENES = [
   { key: "hero", duration: 3000 },
   { key: "invite-hero", duration: 5000 },
-  { key: "gallery", duration: 5000 },
+  { key: "gallery", duration: 6000 },
   { key: "blessing", duration: 3000 },
   { key: "date", duration: 2000 },
   { key: "venue", duration: 5000 },
