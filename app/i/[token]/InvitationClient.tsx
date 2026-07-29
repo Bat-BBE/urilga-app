@@ -129,7 +129,11 @@ const CONTENT = {
   ],
   contactPhone: "+976 9899 0593",
   musicSrc: "/assets/music.mp3",
-  galleryPhotos: [] as string[],
+  galleryPhotos: [
+    "/images/gallery/ger-exterior.png",
+    "/images/gallery/ger-interior.png",
+    "/images/gallery/pattern.png",
+  ],
   blessing: [
     "Эцгийн ариун голомтыг",
     "Ган тулгандаа бадрааж",
