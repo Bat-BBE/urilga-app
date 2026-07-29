@@ -394,8 +394,8 @@ export default function InvitationAllUser() {
     <div className={`${display.variable} ${body.variable} ${caption.variable}`}>
       {stage === "intro" && (
         <IntroScene
-          coupleInitials="М & П"
-          coupleNames="Мөнгөншагай & Пүрэвням"
+          coupleInitials="Э & Ч"
+          coupleNames={CONTENT.coupleNames}
           musicSrc="/assets/morin-huur.mp3"
           musicVolume={0.5}
           onDone={() => setStage("cover")}
