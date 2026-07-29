@@ -131,7 +131,11 @@ const CONTENT = {
   ],
   contactPhone: "+976 9899 0593",
   musicSrc: "/assets/hurim-duu.mp3",
-  galleryPhotos: [] as string[],
+  galleryPhotos: [
+    "/images/gallery/ger-exterior.png",
+    "/images/gallery/ger-interior.png",
+    "/images/gallery/pattern.png",
+  ],
   blessing: [
     "Эцгийн ариун голомтыг",
     "Ган тулгандаа бадрааж",
@@ -390,10 +394,11 @@ export default function InvitationAllUser() {
     <div className={`${display.variable} ${body.variable} ${caption.variable}`}>
       {stage === "intro" && (
         <IntroScene
-          coupleInitials={initials}
-          coupleNames={CONTENT.coupleNames}
+          coupleInitials="М & П"
+          coupleNames="Мөнгөншагай & Пүрэвням"
+          musicSrc="/assets/morin-huur.mp3"
+          musicVolume={0.5}
           onDone={() => setStage("cover")}
-          onSkip={() => setStage("cover")}
         />
       )}
 
