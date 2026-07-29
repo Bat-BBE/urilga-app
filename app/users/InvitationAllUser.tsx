@@ -138,8 +138,6 @@ const CONTENT = {
     "/images/gallery/hero-2.jpg",
     "/images/gallery/hero-3.jpg",
     "/images/gallery/hero-4.jpg",
-    "/images/gallery/hero-5.jpg",
-    "/images/gallery/hero-6.jpg",
   ],
   blessing: [
     "Эцгийн ариун голомтыг",
