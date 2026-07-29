@@ -11,6 +11,7 @@ import {
   DateMedallion,
   CircularMotif,
 } from "@/app/i/[token]/Ornaments";
+import HorseRaceSection from "@/app/i/[token]/HorseRaceSection";
 
 const display = Cormorant_Garamond({
   subsets: ["cyrillic", "latin"],
@@ -28,6 +29,88 @@ const caption = PT_Sans({
   weight: ["400", "700"],
   variable: "--font-caption",
 });
+
+const SCENES = [
+  { key: "hero", duration: 3000 },
+  { key: "invite-hero", duration: 5000 },
+  { key: "gallery", duration: 5000 },
+  { key: "blessing", duration: 3000 },
+  { key: "date", duration: 2000 },
+  { key: "venue", duration: 5000 },
+  { key: "horse", duration: 2000 },
+  { key: "hosts", duration: 2000 },
+  { key: "rsvp", duration: 1000 },
+] as const;
+
+function useAutoplaySections(active: boolean) {
+  const refs = useRef<Record<string, HTMLElement | null>>({});
+  const [index, setIndex] = useState(0);
+  const [paused, setPaused] = useState(false);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const resumeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const userScrollLock = useRef(false);
+
+  const setRef = (key: string) => (el: HTMLElement | null) => {
+    refs.current[key] = el;
+  };
+
+  useEffect(() => {
+    if (!active || paused) return;
+    const scene = SCENES[index];
+    if (!scene) return;
+
+    timerRef.current = setTimeout(() => {
+      const next = index + 1;
+      if (next >= SCENES.length) return;
+      userScrollLock.current = true;
+      refs.current[SCENES[next].key]?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+      setIndex(next);
+      setTimeout(() => {
+        userScrollLock.current = false;
+      }, 900);
+    }, scene.duration);
+
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
+  }, [active, index, paused]);
+
+  useEffect(() => {
+    if (!active) return;
+    function onUserScroll() {
+      if (userScrollLock.current) return;
+      setPaused(true);
+      if (resumeTimerRef.current) clearTimeout(resumeTimerRef.current);
+      resumeTimerRef.current = setTimeout(() => {
+        const viewportMid = window.scrollY + window.innerHeight / 2;
+        let closest = 0;
+        let closestDist = Infinity;
+        SCENES.forEach((s, i) => {
+          const el = refs.current[s.key];
+          if (!el) return;
+          const top = el.offsetTop;
+          const dist = Math.abs(top - viewportMid + el.offsetHeight / 2);
+          if (dist < closestDist) {
+            closestDist = dist;
+            closest = i;
+          }
+        });
+        setIndex(closest);
+        setPaused(false);
+      }, 5000);
+    }
+    window.addEventListener("scroll", onUserScroll, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", onUserScroll);
+      if (resumeTimerRef.current) clearTimeout(resumeTimerRef.current);
+    };
+  }, [active]);
+
+  return { setRef };
+}
 
 const CONTENT = {
   coupleNames: "Эрдэнэмандал & Чанцалдулам",
@@ -47,7 +130,7 @@ const CONTENT = {
     { role: "Охин", names: "Баяржаргал" },
   ],
   contactPhone: "+976 9899 0593",
-  musicSrc: "/assets/music.mp3",
+  musicSrc: "/assets/hurim-duu.mp3",
   galleryPhotos: [] as string[],
   blessing: [
     "Эцгийн ариун голомтыг",
@@ -284,6 +367,7 @@ export default function InvitationAllUser() {
   const pad = (n: number) => n.toString().padStart(2, "0");
   const audioRef = useRef<HTMLAudioElement>(null);
   const { progress, scrollY } = useScrollProgress(stage === "invite");
+  const { setRef } = useAutoplaySections(stage === "invite");
 
   useEffect(() => {
     if (stage !== "invite") return;
@@ -333,7 +417,7 @@ export default function InvitationAllUser() {
             />
           </div>
 
-          <section className="hero">
+          <section ref={setRef("hero")} className="hero">
             <div
               className="motif-layer"
               style={{ transform: `translateY(${scrollY * 0.12}px)` }}
@@ -409,7 +493,10 @@ export default function InvitationAllUser() {
 
           <OrnamentDivider />
           <Reveal className="reveal--wide">
-            <section className="section invite-hero">
+            <section
+              ref={setRef("invite-hero")}
+              className="section invite-hero"
+            >
               <SectionMotif side="left" size={340} />
               <SectionMotif side="right" size={260} />
 
@@ -444,7 +531,10 @@ export default function InvitationAllUser() {
           <OrnamentDivider />
 
           <Reveal className="reveal--full">
-            <section className="section section--full gallery">
+            <section
+              ref={setRef("gallery")}
+              className="section section--full gallery"
+            >
               <p className="section-label">Дурсамж</p>
               <Panorama photos={CONTENT.galleryPhotos} />
             </section>
@@ -453,7 +543,7 @@ export default function InvitationAllUser() {
           <OrnamentDivider />
 
           <Reveal>
-            <section className="section blessing">
+            <section ref={setRef("blessing")} className="section blessing">
               <SectionMotif side="right" size={260} />
               <p className="section-label">Ерөөл</p>
               <div className="hero-hee">
@@ -472,7 +562,7 @@ export default function InvitationAllUser() {
           <OrnamentDivider />
 
           <Reveal>
-            <section className="section">
+            <section ref={setRef("date")} className="section">
               <SectionMotif side="left" size={220} />
               <p className="section-label">Огноо</p>
               <DateMedallion
@@ -491,7 +581,7 @@ export default function InvitationAllUser() {
           <OrnamentDivider />
 
           <Reveal>
-            <section className="section">
+            <section ref={setRef("venue")} className="section">
               <div
                 className="motif-layer"
                 style={{ transform: `translateY(${scrollY * 0.12}px)` }}
@@ -532,9 +622,16 @@ export default function InvitationAllUser() {
           </Reveal>
 
           <OrnamentDivider />
+          <Reveal className="reveal--full">
+            <section ref={setRef("horse")}>
+              <HorseRaceSection />
+            </section>
+          </Reveal>
+
+          <OrnamentDivider />
 
           <Reveal>
-            <section className="section hosts">
+            <section ref={setRef("hosts")} className="section hosts">
               <div
                 className="motif-layer"
                 style={{ transform: `translateY(${scrollY * 0.12}px)` }}
@@ -566,7 +663,7 @@ export default function InvitationAllUser() {
           <OrnamentDivider />
 
           <Reveal>
-            <section className="section rsvp">
+            <section ref={setRef("rsvp")} className="section rsvp">
               <div
                 className="motif-layer"
                 style={{ transform: `translateY(${scrollY * 0.22}px)` }}

@@ -1,28 +1,40 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
-const TOTAL_MS = 7200;
+const TOTAL_MS = 7600;
 const EMBER_COUNT = 20;
 const DUST_COUNT = 26;
 const GLINT_COUNT = 16;
 const PETAL_COUNT = 10;
 const RAY_COUNT = 14;
 const BURST_COUNT = 30;
+const CONVERGE_COUNT = 22;
+const MANDALA_TICKS = 24;
 
 export default function IntroScene({
   coupleInitials,
   coupleNames = "Мөнгөншагай & Пүрэвням",
+  musicSrc,
+  musicVolume = 0.55,
   onDone,
   onSkip,
 }: {
   coupleInitials?: string;
   coupleNames?: string;
+  /** Optional path to a background music file, e.g. "/music/wedding-theme.mp3" */
+  musicSrc?: string;
+  /** Target volume for the music once it has faded in (0 - 1) */
+  musicVolume?: number;
   onDone: () => void;
   onSkip?: () => void;
 }) {
   const [fadingOut, setFadingOut] = useState(false);
   const [reduced, setReduced] = useState(false);
+  const [needsTapForSound, setNeedsTapForSound] = useState(false);
+
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const fadeIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
     const mql = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -38,6 +50,86 @@ export default function IntroScene({
     return () => clearTimeout(doneTimer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [reduced]);
+
+  // ---- Background music: fade in on start, fade out on close ----
+  function clearFade() {
+    if (fadeIntervalRef.current) {
+      clearInterval(fadeIntervalRef.current);
+      fadeIntervalRef.current = null;
+    }
+  }
+
+  function fadeAudioTo(
+    target: number,
+    durationMs: number,
+    onComplete?: () => void,
+  ) {
+    const audio = audioRef.current;
+    if (!audio) return;
+    clearFade();
+    const steps = 24;
+    const stepTime = durationMs / steps;
+    const start = audio.volume;
+    const diff = target - start;
+    let i = 0;
+    fadeIntervalRef.current = setInterval(() => {
+      i += 1;
+      const t = i / steps;
+      audio.volume = Math.min(1, Math.max(0, start + diff * t));
+      if (i >= steps) {
+        clearFade();
+        onComplete?.();
+      }
+    }, stepTime);
+  }
+
+  useEffect(() => {
+    if (!musicSrc) return;
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    audio.volume = 0;
+    audio.loop = true;
+
+    const startPlayback = () => {
+      audio
+        .play()
+        .then(() => {
+          setNeedsTapForSound(false);
+          fadeAudioTo(musicVolume, 1800);
+        })
+        .catch(() => {
+          // Autoplay blocked — wait for the first user interaction.
+          setNeedsTapForSound(true);
+        });
+    };
+
+    startPlayback();
+
+    const resumeOnInteraction = () => {
+      startPlayback();
+      window.removeEventListener("pointerdown", resumeOnInteraction);
+      window.removeEventListener("keydown", resumeOnInteraction);
+    };
+    window.addEventListener("pointerdown", resumeOnInteraction);
+    window.addEventListener("keydown", resumeOnInteraction);
+
+    return () => {
+      clearFade();
+      window.removeEventListener("pointerdown", resumeOnInteraction);
+      window.removeEventListener("keydown", resumeOnInteraction);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [musicSrc]);
+
+  useEffect(() => {
+    if (!musicSrc) return;
+    if (!fadingOut) return;
+    fadeAudioTo(0, 700, () => {
+      audioRef.current?.pause();
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fadingOut]);
 
   function handleSkip() {
     setFadingOut(true);
@@ -130,6 +222,41 @@ export default function IntroScene({
     [],
   );
 
+  // Motes that spiral inward toward the center just before the rings
+  // appear — builds anticipation for the "coming together" moment.
+  const converge = useMemo(
+    () =>
+      Array.from({ length: CONVERGE_COUNT }).map((_, i) => {
+        const angle = (360 / CONVERGE_COUNT) * i + (i % 3) * 6;
+        const radius = 128 + ((i * 11) % 90);
+        const sx = Math.cos((angle * Math.PI) / 180) * radius;
+        const sy = Math.sin((angle * Math.PI) / 180) * radius * 0.72;
+        const delay = 0.55 + (i % 7) * 0.09;
+        const duration = 1.1 + (i % 5) * 0.14;
+        const gold = i % 2 === 0;
+        return { sx, sy, delay, duration, gold, key: i };
+      }),
+    [],
+  );
+
+  const mandalaTicks = useMemo(
+    () =>
+      Array.from({ length: MANDALA_TICKS }).map((_, i) => {
+        const a = (i / MANDALA_TICKS) * Math.PI * 2;
+        const r1 = 182;
+        const r2 = i % 6 === 0 ? 148 : 164;
+        return {
+          x1: 200 + Math.cos(a) * r1,
+          y1: 200 + Math.sin(a) * r1,
+          x2: 200 + Math.cos(a) * r2,
+          y2: 200 + Math.sin(a) * r2,
+          key: i,
+          major: i % 6 === 0,
+        };
+      }),
+    [],
+  );
+
   return (
     <div
       aria-hidden={fadingOut}
@@ -137,9 +264,69 @@ export default function IntroScene({
         fadingOut ? " intro--closing" : ""
       }`}
     >
+      {musicSrc ? (
+        <>
+          {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
+          <audio ref={audioRef} src={musicSrc} preload="auto" />
+          {needsTapForSound && !fadingOut ? (
+            <button
+              type="button"
+              className="intro-sound-hint"
+              onClick={() => {
+                audioRef.current?.play().then(() => {
+                  setNeedsTapForSound(false);
+                  fadeAudioTo(musicVolume, 1200);
+                });
+              }}
+            >
+              ♪ Дуу нээх
+            </button>
+          ) : null}
+        </>
+      ) : null}
+
       {!reduced && (
         <>
           <div className="intro-vignette" />
+
+          {/* Faint rotating mandala backdrop, present the whole time */}
+          <svg
+            className="intro-mandala"
+            viewBox="0 0 400 400"
+            xmlns="http://www.w3.org/2000/svg"
+            aria-hidden
+          >
+            {mandalaTicks.map((t) => (
+              <line
+                key={t.key}
+                x1={t.x1}
+                y1={t.y1}
+                x2={t.x2}
+                y2={t.y2}
+                stroke={t.major ? "#8fd9ff" : "#f3d9a4"}
+                strokeWidth={t.major ? 0.9 : 0.5}
+                opacity={t.major ? 0.4 : 0.28}
+              />
+            ))}
+            <circle
+              cx="200"
+              cy="200"
+              r="182"
+              stroke="#f3d9a4"
+              strokeWidth="0.6"
+              fill="none"
+              opacity="0.3"
+            />
+            <circle
+              cx="200"
+              cy="200"
+              r="148"
+              stroke="#8fd9ff"
+              strokeWidth="0.5"
+              fill="none"
+              opacity="0.22"
+            />
+          </svg>
 
           {/* Duality backdrop: sky above, fire below */}
           <div className="intro-sky" />
@@ -157,6 +344,26 @@ export default function IntroScene({
                     "--r": `${r.rotate}deg`,
                     transform: `rotate(${r.rotate}deg)`,
                     animationDelay: `${r.delay}s`,
+                  } as React.CSSProperties
+                }
+              />
+            ))}
+          </div>
+
+          {/* Motes spiralling inward — anticipation before the rings meet */}
+          <div className="intro-converge">
+            {converge.map((c) => (
+              <span
+                key={c.key}
+                className={`converge-mote ${
+                  c.gold ? "converge-mote--gold" : "converge-mote--sky"
+                }`}
+                style={
+                  {
+                    animationDelay: `${c.delay}s`,
+                    animationDuration: `${c.duration}s`,
+                    "--sx": `${c.sx}px`,
+                    "--sy": `${c.sy}px`,
                   } as React.CSSProperties
                 }
               />
@@ -208,6 +415,7 @@ export default function IntroScene({
 
           {/* Burst at the point the rings cross */}
           <div className="intro-burst-flash" />
+          <div className="intro-shockwave" />
           <div className="intro-burst">
             {burst.map((b) => (
               <span
@@ -225,6 +433,9 @@ export default function IntroScene({
               />
             ))}
           </div>
+
+          {/* A pillar of light joining hearth (earth/fire) and sky — the union */}
+          <div className="intro-pillar" />
 
           <div className="intro-flame">
             <span className="flame-lick flame-lick--a" />
@@ -308,6 +519,14 @@ export default function IntroScene({
             ))}
           </div>
 
+          {/* Ornamental corner brackets, framing the whole scene */}
+          <div className="intro-corners" aria-hidden>
+            <span className="corner-flourish corner-flourish--tl" />
+            <span className="corner-flourish corner-flourish--tr" />
+            <span className="corner-flourish corner-flourish--bl" />
+            <span className="corner-flourish corner-flourish--br" />
+          </div>
+
           <div className="intro-sweep" />
           <div className="intro-bloom" />
         </>
@@ -333,6 +552,33 @@ export default function IntroScene({
 
       <div className="intro-close-iris" />
       <style jsx>{`
+        .intro-sound-hint {
+          position: absolute;
+          top: 24px;
+          left: 50%;
+          transform: translateX(-50%);
+          z-index: 12;
+          background: rgba(15, 10, 8, 0.55);
+          border: 1px solid rgba(230, 190, 130, 0.4);
+          color: #f3d9a4;
+          font-family: "PT Sans", sans-serif;
+          font-size: 0.72rem;
+          letter-spacing: 0.14em;
+          text-transform: uppercase;
+          padding: 8px 16px;
+          border-radius: 999px;
+          cursor: pointer;
+          animation: sound-hint-pulse 1.8s ease-in-out infinite;
+        }
+        @keyframes sound-hint-pulse {
+          0%,
+          100% {
+            opacity: 0.75;
+          }
+          50% {
+            opacity: 1;
+          }
+        }
         .intro {
           position: fixed;
           inset: 0;
@@ -349,7 +595,10 @@ export default function IntroScene({
         .intro--closing .intro-flame,
         .intro--closing .intro-rays,
         .intro--closing .intro-sweep,
-        .intro--closing .intro-bloom {
+        .intro--closing .intro-bloom,
+        .intro--closing .intro-mandala,
+        .intro--closing .intro-corners,
+        .intro--closing .intro-skip {
           transition: opacity 400ms ease;
           opacity: 0;
         }
@@ -383,6 +632,34 @@ export default function IntroScene({
             rgba(0, 0, 0, 0.6) 100%
           );
           z-index: 1;
+        }
+
+        /* ---- Faint rotating mandala, present from the start ---- */
+        .intro-mandala {
+          position: absolute;
+          left: 50%;
+          top: 52%;
+          width: min(120vw, 640px);
+          height: min(120vw, 640px);
+          transform: translate(-50%, -50%);
+          opacity: 0;
+          z-index: 0;
+          animation:
+            mandala-in 1.8s ease 0.2s forwards,
+            mandala-spin 100s linear infinite;
+        }
+        @keyframes mandala-in {
+          to {
+            opacity: 0.5;
+          }
+        }
+        @keyframes mandala-spin {
+          from {
+            transform: translate(-50%, -50%) rotate(0deg);
+          }
+          to {
+            transform: translate(-50%, -50%) rotate(360deg);
+          }
         }
 
         /* ---- Duality: sky above, fire below ---- */
@@ -467,6 +744,59 @@ export default function IntroScene({
           }
         }
 
+        /* ---- Motes converging toward the center ---- */
+        .intro-converge {
+          position: absolute;
+          left: 50%;
+          top: 52%;
+          width: 0;
+          height: 0;
+          z-index: 2;
+        }
+        .converge-mote {
+          position: absolute;
+          left: 0;
+          top: 0;
+          width: 4px;
+          height: 4px;
+          border-radius: 50%;
+          opacity: 0;
+          animation-name: converge-in;
+          animation-timing-function: cubic-bezier(0.3, 0, 0.2, 1);
+          animation-fill-mode: forwards;
+        }
+        .converge-mote--gold {
+          background: radial-gradient(
+            circle,
+            #fff3d6 0%,
+            #ffb865 70%,
+            transparent 100%
+          );
+          box-shadow: 0 0 6px rgba(255, 190, 110, 0.6);
+        }
+        .converge-mote--sky {
+          background: radial-gradient(
+            circle,
+            #eaf8ff 0%,
+            #7fd0ff 70%,
+            transparent 100%
+          );
+          box-shadow: 0 0 6px rgba(140, 210, 255, 0.6);
+        }
+        @keyframes converge-in {
+          0% {
+            opacity: 0;
+            transform: translate(var(--sx), var(--sy)) scale(1.4);
+          }
+          18% {
+            opacity: 1;
+          }
+          100% {
+            opacity: 0;
+            transform: translate(0, 0) scale(0.2);
+          }
+        }
+
         /* ---- Two interlocking rings ---- */
         .intro-rings {
           position: absolute;
@@ -544,6 +874,33 @@ export default function IntroScene({
             transform: translate(-50%, -50%) scale(1.9);
           }
         }
+        .intro-shockwave {
+          position: absolute;
+          left: 50%;
+          top: 52%;
+          width: 40px;
+          height: 40px;
+          border-radius: 50%;
+          border: 1.5px solid rgba(255, 230, 190, 0.8);
+          transform: translate(-50%, -50%) scale(0.4);
+          opacity: 0;
+          z-index: 2;
+          animation: shockwave-out 1.1s cubic-bezier(0.2, 0.7, 0.3, 1) 2.55s
+            forwards;
+        }
+        @keyframes shockwave-out {
+          0% {
+            opacity: 0;
+            transform: translate(-50%, -50%) scale(0.4);
+          }
+          15% {
+            opacity: 0.9;
+          }
+          100% {
+            opacity: 0;
+            transform: translate(-50%, -50%) scale(9);
+          }
+        }
         .intro-burst {
           position: absolute;
           left: 50%;
@@ -590,6 +947,47 @@ export default function IntroScene({
           100% {
             opacity: 0;
             transform: translate(var(--dx), var(--dy)) scale(0.3);
+          }
+        }
+
+        /* ---- Pillar of light joining hearth and sky ---- */
+        .intro-pillar {
+          position: absolute;
+          left: 50%;
+          bottom: 8%;
+          width: 3px;
+          height: 0;
+          transform: translateX(-50%);
+          background: linear-gradient(
+            to top,
+            rgba(255, 207, 122, 0.9) 0%,
+            rgba(255, 240, 210, 0.65) 45%,
+            rgba(140, 214, 255, 0.55) 80%,
+            transparent 100%
+          );
+          filter: blur(1.5px);
+          opacity: 0;
+          z-index: 2;
+          animation:
+            pillar-rise 1.3s cubic-bezier(0.2, 0.8, 0.2, 1) 2.55s forwards,
+            pillar-fade 0.9s ease 3.85s forwards;
+        }
+        @keyframes pillar-rise {
+          0% {
+            height: 0;
+            opacity: 0;
+          }
+          25% {
+            opacity: 0.9;
+          }
+          100% {
+            height: 76vh;
+            opacity: 0.9;
+          }
+        }
+        @keyframes pillar-fade {
+          to {
+            opacity: 0;
           }
         }
 
@@ -888,6 +1286,63 @@ export default function IntroScene({
           }
         }
 
+        /* ---- Ornamental corner brackets ---- */
+        .intro-corners {
+          position: absolute;
+          inset: 0;
+          z-index: 4;
+          pointer-events: none;
+        }
+        .corner-flourish {
+          position: absolute;
+          width: 64px;
+          height: 64px;
+          opacity: 0;
+          animation: corner-in 1s ease 0.7s forwards;
+        }
+        .corner-flourish::before {
+          content: "";
+          position: absolute;
+          inset: 0;
+        }
+        .corner-flourish--tl {
+          top: 22px;
+          left: 22px;
+        }
+        .corner-flourish--tl::before {
+          border-top: 1px solid rgba(243, 217, 164, 0.4);
+          border-left: 1px solid rgba(243, 217, 164, 0.4);
+        }
+        .corner-flourish--tr {
+          top: 22px;
+          right: 22px;
+        }
+        .corner-flourish--tr::before {
+          border-top: 1px solid rgba(243, 217, 164, 0.4);
+          border-right: 1px solid rgba(243, 217, 164, 0.4);
+        }
+        .corner-flourish--bl {
+          bottom: 22px;
+          left: 22px;
+        }
+        .corner-flourish--bl::before {
+          border-bottom: 1px solid rgba(243, 217, 164, 0.4);
+          border-left: 1px solid rgba(243, 217, 164, 0.4);
+        }
+        .corner-flourish--br {
+          bottom: 22px;
+          right: 22px;
+        }
+        .corner-flourish--br::before {
+          border-bottom: 1px solid rgba(243, 217, 164, 0.4);
+          border-right: 1px solid rgba(243, 217, 164, 0.4);
+        }
+        @keyframes corner-in {
+          to {
+            opacity: 1;
+          }
+        }
+
         /* ---- Light sweep across the frame ---- */
         .intro-sweep {
           position: absolute;
@@ -945,7 +1400,7 @@ export default function IntroScene({
         .intro-logo {
           position: absolute;
           inset: 0;
-          z-index: 4;
+          z-index: 5;
           display: flex;
           flex-direction: column;
           align-items: center;
@@ -991,6 +1446,7 @@ export default function IntroScene({
           text-shadow: 0 0 44px rgba(255, 190, 110, 0.6);
         }
         .intro-rule {
+          position: relative;
           width: 0;
           height: 1px;
           background: linear-gradient(
@@ -1000,6 +1456,30 @@ export default function IntroScene({
             transparent
           );
           animation: rule-grow 900ms ease 4.8s forwards;
+        }
+        .intro-rule::before,
+        .intro-rule::after {
+          content: "";
+          position: absolute;
+          top: 50%;
+          width: 5px;
+          height: 5px;
+          background: #f3d9a4;
+          transform: translateY(-50%) rotate(45deg) scale(0);
+          box-shadow: 0 0 6px rgba(243, 217, 164, 0.7);
+          animation: rule-spark-in 500ms ease 5.6s forwards;
+        }
+        .intro-rule::before {
+          left: -3px;
+        }
+        .intro-rule::after {
+          right: -3px;
+          animation-delay: 5.7s;
+        }
+        @keyframes rule-spark-in {
+          to {
+            transform: translateY(-50%) rotate(45deg) scale(1);
+          }
         }
         @keyframes rule-grow {
           to {
@@ -1050,6 +1530,15 @@ export default function IntroScene({
           border-radius: 999px;
           cursor: pointer;
           opacity: 0.75;
+          transition:
+            opacity 200ms ease,
+            background 200ms ease,
+            transform 200ms ease;
+        }
+        .intro-skip:hover {
+          opacity: 1;
+          background: rgba(230, 190, 130, 0.1);
+          transform: translateY(-1px);
         }
 
         @media (prefers-reduced-motion: reduce) {
@@ -1063,10 +1552,17 @@ export default function IntroScene({
           .intro-rays,
           .intro-burst,
           .intro-burst-flash,
+          .intro-shockwave,
+          .intro-pillar,
+          .intro-mandala,
+          .intro-converge,
+          .intro-corners,
           .ember,
           .dust-mote,
           .glint,
-          .petal {
+          .petal,
+          .converge-mote,
+          .corner-flourish {
             animation: none !important;
             opacity: 0 !important;
           }
