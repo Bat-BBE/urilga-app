@@ -964,114 +964,205 @@ export function DateMedallion({
   weekday: number; // 0 = Sunday
 }) {
   return (
-    <div className="date-medallion">
-      <svg
-        width="220"
-        height="220"
-        viewBox="0 0 220 220"
-        aria-hidden
-        style={{ position: "absolute", inset: 0 }}
-      >
-        <defs>
-          <radialGradient id="medallionGlow" cx="50%" cy="42%" r="65%">
-            <stop offset="0%" stopColor="#fbf3df" stopOpacity="0.9" />
-            <stop offset="55%" stopColor="#f6ead0" stopOpacity="0.35" />
-            <stop offset="100%" stopColor="#f6ead0" stopOpacity="0" />
-          </radialGradient>
-          <linearGradient id="ringGold" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#8a6420" />
-            <stop offset="50%" stopColor="#e9cd8b" />
-            <stop offset="100%" stopColor="#8a6420" />
-          </linearGradient>
-        </defs>
+    <div className="date-medallion-wrapper">
+      <div className="date-medallion">
+        {/* Background glow effect */}
+        <div className="medallion-glow" />
 
-        {/* soft inner glow */}
-        <circle cx="110" cy="110" r="90" fill="url(#medallionGlow)" />
+        <svg
+          width="220"
+          height="220"
+          viewBox="0 0 220 220"
+          aria-hidden
+          style={{ position: "absolute", inset: 0, zIndex: 1 }}
+        >
+          <defs>
+            <radialGradient id="medallionGlow" cx="50%" cy="42%" r="65%">
+              <stop offset="0%" stopColor="#fbf3df" stopOpacity="0.95" />
+              <stop offset="50%" stopColor="#f6ead0" stopOpacity="0.4" />
+              <stop offset="100%" stopColor="#f6ead0" stopOpacity="0" />
+            </radialGradient>
 
-        {/* outer ring */}
-        <circle
-          cx="110"
-          cy="110"
-          r="104"
-          stroke="url(#ringGold)"
-          strokeWidth="1.1"
-          fill="none"
-          opacity="0.7"
-        />
-        {/* thin secondary ring */}
-        <circle
-          cx="110"
-          cy="110"
-          r="97.5"
-          stroke="#4F6B4A"
-          strokeWidth="0.5"
-          fill="none"
-          opacity="0.35"
-        />
-        {/* innermost hairline */}
-        <circle
-          cx="110"
-          cy="110"
-          r="84"
-          stroke="#C6982F"
-          strokeWidth="0.4"
-          fill="none"
-          opacity="0.3"
-        />
+            <linearGradient id="ringGold" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="#8a6420" />
+              <stop offset="25%" stopColor="#e9cd8b" />
+              <stop offset="50%" stopColor="#f5e6b8" />
+              <stop offset="75%" stopColor="#e9cd8b" />
+              <stop offset="100%" stopColor="#8a6420" />
+            </linearGradient>
 
-        {/* tick marks — clock-like hierarchy: minutes / hours / quarters */}
-        {Array.from({ length: 60 }).map((_, i) => {
-          const a = (i / 60) * Math.PI * 2 - Math.PI / 2;
-          const isQuarter = i % 15 === 0;
-          const isHour = i % 5 === 0;
-          const r1 = 104;
-          const r2 = isQuarter ? 95.5 : isHour ? 98 : 101;
-          const width = isQuarter ? 1.1 : isHour ? 0.8 : 0.5;
-          const opacity = isQuarter ? 0.75 : isHour ? 0.55 : 0.35;
-          return (
-            <line
-              key={i}
-              x1={110 + Math.cos(a) * r1}
-              y1={110 + Math.sin(a) * r1}
-              x2={110 + Math.cos(a) * r2}
-              y2={110 + Math.sin(a) * r2}
-              stroke="#C6982F"
-              strokeWidth={width}
-              opacity={opacity}
-            />
-          );
-        })}
+            <linearGradient
+              id="ringGoldSubtle"
+              x1="100%"
+              y1="0%"
+              x2="0%"
+              y2="100%"
+            >
+              <stop offset="0%" stopColor="#c6982f" stopOpacity="0.3" />
+              <stop offset="50%" stopColor="#f5e6b8" stopOpacity="0.5" />
+              <stop offset="100%" stopColor="#c6982f" stopOpacity="0.3" />
+            </linearGradient>
 
-        {/* four small diamond accents at N/E/S/W */}
-        {[0, 90, 180, 270].map((deg) => {
-          const a = (deg * Math.PI) / 180 - Math.PI / 2;
-          const cx = 110 + Math.cos(a) * 104;
-          const cy = 110 + Math.sin(a) * 104;
-          return (
-            <rect
-              key={deg}
-              x={cx - 3}
-              y={cy - 3}
-              width="6"
-              height="6"
-              fill="#C6982F"
-              opacity="0.8"
-              transform={`rotate(45 ${cx} ${cy})`}
-            />
-          );
-        })}
-      </svg>
+            <filter id="softShadow">
+              <feDropShadow
+                dx="0"
+                dy="2"
+                stdDeviation="4"
+                floodColor="#5b2620"
+                floodOpacity="0.15"
+              />
+            </filter>
 
-      <div className="date-medallion-inner">
-        <span className="date-medallion-month">{MONTH_NAMES[month - 1]}</span>
-        <span className="date-medallion-flourish" aria-hidden>
-          ✦
-        </span>
-        <span className="date-medallion-day">{day}</span>
-        <span className="date-medallion-divider" aria-hidden />
+            <filter id="goldGlow">
+              <feGaussianBlur stdDeviation="2" result="blur" />
+              <feMerge>
+                <feMergeNode in="blur" />
+                <feMergeNode in="SourceGraphic" />
+              </feMerge>
+            </filter>
+          </defs>
+
+          {/* Soft inner glow */}
+          <circle cx="110" cy="110" r="90" fill="url(#medallionGlow)" />
+
+          {/* Outer ring - main */}
+          <circle
+            cx="110"
+            cy="110"
+            r="104"
+            stroke="url(#ringGold)"
+            strokeWidth="1.4"
+            fill="none"
+            opacity="0.8"
+            filter="url(#softShadow)"
+          />
+
+          {/* Secondary ring with animation class */}
+          <circle
+            cx="110"
+            cy="110"
+            r="98"
+            stroke="url(#ringGoldSubtle)"
+            strokeWidth="0.8"
+            fill="none"
+            opacity="0.5"
+            className="rotating-ring"
+          />
+
+          {/* Innermost hairline */}
+          <circle
+            cx="110"
+            cy="110"
+            r="84"
+            stroke="#C6982F"
+            strokeWidth="0.5"
+            fill="none"
+            opacity="0.3"
+          />
+
+          {/* Tick marks with enhanced styling */}
+          {Array.from({ length: 60 }).map((_, i) => {
+            const a = (i / 60) * Math.PI * 2 - Math.PI / 2;
+            const isQuarter = i % 15 === 0;
+            const isHour = i % 5 === 0;
+            const r1 = 104;
+            const r2 = isQuarter ? 94 : isHour ? 97.5 : 101;
+            const width = isQuarter ? 1.4 : isHour ? 1 : 0.6;
+            const opacity = isQuarter ? 0.85 : isHour ? 0.6 : 0.35;
+            const color = isQuarter ? "#e9cd8b" : "#C6982F";
+            return (
+              <line
+                key={i}
+                x1={110 + Math.cos(a) * r1}
+                y1={110 + Math.sin(a) * r1}
+                x2={110 + Math.cos(a) * r2}
+                y2={110 + Math.sin(a) * r2}
+                stroke={color}
+                strokeWidth={width}
+                opacity={opacity}
+                strokeLinecap="round"
+              />
+            );
+          })}
+
+          {/* Diamond accents with shimmer */}
+          {[0, 90, 180, 270].map((deg, idx) => {
+            const a = (deg * Math.PI) / 180 - Math.PI / 2;
+            const cx = 110 + Math.cos(a) * 104;
+            const cy = 110 + Math.sin(a) * 104;
+            return (
+              <g key={deg} className={`diamond diamond-${idx}`}>
+                <rect
+                  x={cx - 3.5}
+                  y={cy - 3.5}
+                  width="7"
+                  height="7"
+                  fill="#e9cd8b"
+                  opacity="0.9"
+                  transform={`rotate(45 ${cx} ${cy})`}
+                />
+                <rect
+                  x={cx - 1.5}
+                  y={cy - 1.5}
+                  width="3"
+                  height="3"
+                  fill="#f5e6b8"
+                  opacity="0.8"
+                  transform={`rotate(45 ${cx} ${cy})`}
+                />
+              </g>
+            );
+          })}
+
+          {/* Decorative dots between diamonds */}
+          {[45, 135, 225, 315].map((deg) => {
+            const a = (deg * Math.PI) / 180 - Math.PI / 2;
+            const cx = 110 + Math.cos(a) * 101;
+            const cy = 110 + Math.sin(a) * 101;
+            return (
+              <circle
+                key={deg}
+                cx={cx}
+                cy={cy}
+                r="1.5"
+                fill="#C6982F"
+                opacity="0.4"
+                className="dot"
+              />
+            );
+          })}
+        </svg>
+
+        <div className="date-medallion-inner">
+          <span className="date-medallion-month">{MONTH_NAMES[month - 1]}</span>
+          <span className="date-medallion-flourish" aria-hidden>
+            ✦
+          </span>
+          <span className="date-medallion-day">{day}</span>
+          <span className="date-medallion-divider" aria-hidden />
+        </div>
       </div>
 
       <style jsx>{`
+        .date-medallion-wrapper {
+          position: relative;
+          display: inline-block;
+          padding: 10px;
+        }
+
+        .medallion-glow {
+          position: absolute;
+          inset: -30px;
+          background: radial-gradient(
+            circle at center,
+            rgba(198, 152, 47, 0.08) 0%,
+            transparent 70%
+          );
+          border-radius: 50%;
+          animation: glowPulse 4s ease-in-out infinite;
+          pointer-events: none;
+        }
+
         .date-medallion {
           position: relative;
           width: 220px;
@@ -1080,49 +1171,65 @@ export function DateMedallion({
           display: flex;
           align-items: center;
           justify-content: center;
+          animation: medallionAppear 1s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+          opacity: 0;
         }
+
         .date-medallion-inner {
           position: relative;
+          z-index: 2;
           display: flex;
           flex-direction: column;
           align-items: center;
           gap: 1px;
         }
+
         .date-medallion-month {
           font-family: var(--font-caption), sans-serif;
-          letter-spacing: 0.24em;
+          letter-spacing: 0.28em;
           text-transform: uppercase;
           font-size: 0.72rem;
           color: #5b2620;
           opacity: 0.9;
+          animation: slideDown 0.8s ease-out 0.2s both;
         }
+
         .date-medallion-flourish {
-          font-size: 0.55rem;
+          font-size: 0.6rem;
           color: #c6982f;
           opacity: 0.7;
-          margin: 1px 0 3px;
+          margin: 2px 0 4px;
+          animation: spinFlourish 0.8s ease-out 0.4s both;
         }
+
         .date-medallion-day {
           font-style: italic;
           font-weight: 600;
-          font-size: 4rem;
+          font-size: 4.2rem;
           line-height: 1;
           background: linear-gradient(
-            120deg,
-            #8a6420,
-            #c2a249 42%,
-            #debb6c 58%,
-            #dd9822
+            135deg,
+            #8a6420 0%,
+            #c2a249 35%,
+            #debb6c 50%,
+            #f5e6b8 65%,
+            #dd9822 100%
           );
+          background-size: 300% 300%;
           -webkit-background-clip: text;
           background-clip: text;
           -webkit-text-fill-color: transparent;
-          filter: drop-shadow(0 1px 1px rgba(90, 60, 10, 0.25));
+          filter: drop-shadow(0 2px 2px rgba(90, 60, 10, 0.2));
+          animation:
+            dayPulse 4s ease-in-out infinite 0.5s,
+            gradientShift 6s ease-in-out infinite;
+          letter-spacing: -2px;
         }
+
         .date-medallion-divider {
-          width: 28px;
-          height: 1px;
-          margin: 6px 0 5px;
+          width: 32px;
+          height: 1.5px;
+          margin: 6px 0 4px;
           background: linear-gradient(
             90deg,
             transparent,
@@ -1130,12 +1237,202 @@ export function DateMedallion({
             transparent
           );
           opacity: 0.55;
+          animation:
+            dividerGrow 1s ease-out 0.6s forwards,
+            dividerShimmer 3s ease-in-out infinite 1s;
+          transform: scaleX(0);
+          transform-origin: center;
+          border-radius: 2px;
         }
+
         .date-medallion-weekday {
           font-family: var(--font-caption), sans-serif;
           font-size: 0.76rem;
-          letter-spacing: 0.09em;
+          letter-spacing: 0.12em;
           color: #6b5f4f;
+          opacity: 0;
+          animation: fadeInUp 0.8s ease-out 0.8s forwards;
+        }
+
+        /* SVG Animations */
+        .rotating-ring {
+          animation: ringRotate 20s linear infinite;
+          transform-origin: center;
+        }
+
+        .diamond {
+          animation: diamondShimmer 3s ease-in-out infinite;
+        }
+
+        .diamond-0 {
+          animation-delay: 0s;
+        }
+        .diamond-1 {
+          animation-delay: 0.75s;
+        }
+        .diamond-2 {
+          animation-delay: 1.5s;
+        }
+        .diamond-3 {
+          animation-delay: 2.25s;
+        }
+
+        .dot {
+          animation: dotPulse 2s ease-in-out infinite;
+        }
+
+        /* Hover Effects */
+        .date-medallion:hover {
+          animation-play-state: paused;
+        }
+
+        .date-medallion:hover .date-medallion-day {
+          animation-play-state: paused;
+        }
+
+        .date-medallion:hover .rotating-ring {
+          animation-duration: 8s;
+        }
+
+        .date-medallion:hover .medallion-glow {
+          animation-duration: 1.5s;
+        }
+
+        .date-medallion:hover {
+          transform: scale(1.02) rotate(2deg);
+          transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        /* Keyframes */
+        @keyframes medallionAppear {
+          0% {
+            opacity: 0;
+            transform: scale(0.7) translateY(30px) rotate(-5deg);
+          }
+          100% {
+            opacity: 1;
+            transform: scale(1) translateY(0) rotate(0deg);
+          }
+        }
+
+        @keyframes slideDown {
+          0% {
+            opacity: 0;
+            transform: translateY(-10px);
+          }
+          100% {
+            opacity: 0.9;
+            transform: translateY(0);
+          }
+        }
+
+        @keyframes spinFlourish {
+          0% {
+            opacity: 0;
+            transform: rotate(-180deg) scale(0);
+          }
+          100% {
+            opacity: 0.7;
+            transform: rotate(0deg) scale(1);
+          }
+        }
+
+        @keyframes dayPulse {
+          0%,
+          100% {
+            filter: drop-shadow(0 2px 2px rgba(90, 60, 10, 0.2));
+          }
+          50% {
+            filter: drop-shadow(0 0 30px rgba(198, 152, 47, 0.3))
+              drop-shadow(0 0 60px rgba(198, 152, 47, 0.1));
+          }
+        }
+
+        @keyframes gradientShift {
+          0%,
+          100% {
+            background-position: 0% 50%;
+          }
+          50% {
+            background-position: 100% 50%;
+          }
+        }
+
+        @keyframes dividerGrow {
+          0% {
+            transform: scaleX(0);
+            opacity: 0;
+          }
+          100% {
+            transform: scaleX(1);
+            opacity: 0.55;
+          }
+        }
+
+        @keyframes dividerShimmer {
+          0%,
+          100% {
+            opacity: 0.55;
+          }
+          50% {
+            opacity: 0.9;
+          }
+        }
+
+        @keyframes fadeInUp {
+          0% {
+            opacity: 0;
+            transform: translateY(8px);
+          }
+          100% {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+
+        @keyframes ringRotate {
+          0% {
+            transform: rotate(0deg);
+          }
+          100% {
+            transform: rotate(360deg);
+          }
+        }
+
+        @keyframes glowPulse {
+          0%,
+          100% {
+            opacity: 0.5;
+            transform: scale(1);
+          }
+          50% {
+            opacity: 1;
+            transform: scale(1.1);
+          }
+        }
+
+        @keyframes diamondShimmer {
+          0%,
+          100% {
+            opacity: 0.7;
+            transform: scale(1);
+          }
+          50% {
+            opacity: 1;
+            transform: scale(1.2);
+          }
+        }
+
+        @keyframes dotPulse {
+          0%,
+          100% {
+            opacity: 0.3;
+            r: 1.5;
+          }
+          50% {
+            opacity: 0.7;
+            r: 2.5;
+          }
         }
       `}</style>
     </div>

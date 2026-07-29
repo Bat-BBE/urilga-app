@@ -1,8 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useMusic } from "./MusicProvider";
 
-const TOTAL_MS = 7600;
+// The whole reveal sequence (rings tracing, burst, pillar, flame, names)
+// now runs ~11s after the tap — slow and ceremonial rather than rushed.
+const TOTAL_MS = 11000;
 const EMBER_COUNT = 20;
 const DUST_COUNT = 26;
 const GLINT_COUNT = 16;
@@ -11,28 +14,34 @@ const RAY_COUNT = 14;
 const BURST_COUNT = 30;
 const CONVERGE_COUNT = 22;
 const MANDALA_TICKS = 24;
+const GATE_TICKS = 40;
 
 export default function IntroScene({
   coupleInitials,
-  coupleNames = "Эрдэнэмандал & Чанцалдулам",
-  musicSrc,
+  coupleNames = "Мөнгөншагай & Пүрэвням",
   musicVolume = 0.55,
   onDone,
   onSkip,
 }: {
   coupleInitials?: string;
   coupleNames?: string;
-  musicSrc?: string;
+  /** Target volume for the music once it has faded in (0 - 1) */
   musicVolume?: number;
   onDone: () => void;
   onSkip?: () => void;
 }) {
   const [fadingOut, setFadingOut] = useState(false);
   const [reduced, setReduced] = useState(false);
-  const [needsTapForSound, setNeedsTapForSound] = useState(false);
 
-  const audioRef = useRef<HTMLAudioElement | null>(null);
-  const fadeIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  // The big ceremonial sequence — and the music — only begin once the
+  // visitor has actually tapped. Browsers refuse to play audio (and we
+  // don't want the "show" to run silently) until there has been a real
+  // user gesture, so we gate the reveal behind a single tap. The soft
+  // ambient background (mandala, dust, corner frame) runs the whole
+  // time regardless, so the gate screen never feels empty.
+  const [started, setStarted] = useState(false);
+
+  const { play } = useMusic();
 
   useEffect(() => {
     const mql = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -40,6 +49,7 @@ export default function IntroScene({
   }, []);
 
   useEffect(() => {
+    if (!started) return;
     const total = reduced ? 500 : TOTAL_MS;
     const doneTimer = setTimeout(() => {
       setFadingOut(true);
@@ -47,87 +57,19 @@ export default function IntroScene({
     }, total);
     return () => clearTimeout(doneTimer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [reduced]);
+  }, [started, reduced]);
 
-  // ---- Background music: fade in on start, fade out on close ----
-  function clearFade() {
-    if (fadeIntervalRef.current) {
-      clearInterval(fadeIntervalRef.current);
-      fadeIntervalRef.current = null;
-    }
+  // Note: music is intentionally left playing when IntroScene closes —
+  // it's meant to carry on into the rest of the invitation. Call
+  // useMusic().fadeOut() from wherever the site's music should actually end.
+
+  function beginIntro() {
+    if (started) return;
+    setStarted(true);
+    // Called directly from a click/tap handler — this is the user
+    // gesture browsers require before they'll allow audio.play().
+    play(musicVolume, 1800);
   }
-
-  function fadeAudioTo(
-    target: number,
-    durationMs: number,
-    onComplete?: () => void,
-  ) {
-    const audio = audioRef.current;
-    if (!audio) return;
-    clearFade();
-    const steps = 24;
-    const stepTime = durationMs / steps;
-    const start = audio.volume;
-    const diff = target - start;
-    let i = 0;
-    fadeIntervalRef.current = setInterval(() => {
-      i += 1;
-      const t = i / steps;
-      audio.volume = Math.min(1, Math.max(0, start + diff * t));
-      if (i >= steps) {
-        clearFade();
-        onComplete?.();
-      }
-    }, stepTime);
-  }
-
-  useEffect(() => {
-    if (!musicSrc) return;
-    const audio = audioRef.current;
-    if (!audio) return;
-
-    audio.volume = 0;
-    audio.loop = true;
-
-    const startPlayback = () => {
-      audio
-        .play()
-        .then(() => {
-          setNeedsTapForSound(false);
-          fadeAudioTo(musicVolume, 1800);
-        })
-        .catch(() => {
-          // Autoplay blocked — wait for the first user interaction.
-          setNeedsTapForSound(true);
-        });
-    };
-
-    startPlayback();
-
-    const resumeOnInteraction = () => {
-      startPlayback();
-      window.removeEventListener("pointerdown", resumeOnInteraction);
-      window.removeEventListener("keydown", resumeOnInteraction);
-    };
-    window.addEventListener("pointerdown", resumeOnInteraction);
-    window.addEventListener("keydown", resumeOnInteraction);
-
-    return () => {
-      clearFade();
-      window.removeEventListener("pointerdown", resumeOnInteraction);
-      window.removeEventListener("keydown", resumeOnInteraction);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [musicSrc]);
-
-  useEffect(() => {
-    if (!musicSrc) return;
-    if (!fadingOut) return;
-    fadeAudioTo(0, 700, () => {
-      audioRef.current?.pause();
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [fadingOut]);
 
   function handleSkip() {
     setFadingOut(true);
@@ -140,8 +82,8 @@ export default function IntroScene({
     () =>
       Array.from({ length: EMBER_COUNT }).map((_, i) => {
         const left = 50 + Math.sin(i * 2.1) * 26 + (i % 3) * 2.5;
-        const delay = 3.2 + (i / EMBER_COUNT) * 2.8 + (i % 4) * 0.15;
-        const duration = 2.6 + (i % 5) * 0.45;
+        const delay = 4.48 + (i / EMBER_COUNT) * 3.92 + (i % 4) * 0.21;
+        const duration = 3.64 + (i % 5) * 0.63;
         const size = 2.5 + (i % 4) * 2;
         const drift = (i % 2 === 0 ? 1 : -1) * (14 + (i % 6) * 6);
         return { left, delay, duration, size, drift, key: i };
@@ -170,8 +112,8 @@ export default function IntroScene({
         const radius = 22 + ((i * 13) % 30);
         const x = 50 + Math.cos((angle * Math.PI) / 180) * radius * 0.9;
         const y = 50 + Math.sin((angle * Math.PI) / 180) * radius * 0.55;
-        const delay = 2.6 + ((i * 0.21) % 2.6);
-        const duration = 1.6 + (i % 4) * 0.35;
+        const delay = 3.64 + ((i * 0.294) % 3.64);
+        const duration = 2.24 + (i % 4) * 0.49;
         const size = 5 + (i % 3) * 3;
         const hue = i % 2 === 0 ? "#ffe9c2" : "#bfe9ff";
         return { x, y, delay, duration, size, hue, key: i };
@@ -183,8 +125,8 @@ export default function IntroScene({
     () =>
       Array.from({ length: PETAL_COUNT }).map((_, i) => {
         const left = (i * 91) % 100;
-        const delay = 3.4 + ((i * 0.31) % 3.6);
-        const duration = 5.5 + (i % 4) * 0.8;
+        const delay = 4.76 + ((i * 0.434) % 5.04);
+        const duration = 7.7 + (i % 4) * 1.12;
         const size = 8 + (i % 3) * 4;
         const spin = (i % 2 === 0 ? 1 : -1) * (220 + (i % 3) * 90);
         const sway = 30 + (i % 5) * 12;
@@ -197,7 +139,7 @@ export default function IntroScene({
     () =>
       Array.from({ length: RAY_COUNT }).map((_, i) => ({
         rotate: (360 / RAY_COUNT) * i,
-        delay: 0.1 + (i % 3) * 0.06,
+        delay: 0.14 + (i % 3) * 0.084,
         key: i,
       })),
     [],
@@ -213,7 +155,7 @@ export default function IntroScene({
         const dx = Math.cos((angle * Math.PI) / 180) * distance;
         const dy = Math.sin((angle * Math.PI) / 180) * distance * 0.82;
         const size = 2 + (i % 3) * 1.6;
-        const delay = 2.55 + (i % 4) * 0.02;
+        const delay = 3.57 + (i % 4) * 0.028;
         const gold = i % 2 === 0;
         return { dx, dy, size, delay, gold, key: i };
       }),
@@ -229,8 +171,8 @@ export default function IntroScene({
         const radius = 128 + ((i * 11) % 90);
         const sx = Math.cos((angle * Math.PI) / 180) * radius;
         const sy = Math.sin((angle * Math.PI) / 180) * radius * 0.72;
-        const delay = 0.55 + (i % 7) * 0.09;
-        const duration = 1.1 + (i % 5) * 0.14;
+        const delay = 0.77 + (i % 7) * 0.126;
+        const duration = 1.54 + (i % 5) * 0.196;
         const gold = i % 2 === 0;
         return { sx, sy, delay, duration, gold, key: i };
       }),
@@ -243,13 +185,39 @@ export default function IntroScene({
         const a = (i / MANDALA_TICKS) * Math.PI * 2;
         const r1 = 182;
         const r2 = i % 6 === 0 ? 148 : 164;
+        // Fixed to 4 decimal places so the server-rendered markup and the
+        // client's first render produce byte-identical numbers — plain
+        // Math.cos/sin values can differ in their last digit between
+        // server and browser floating point, which triggers a hydration
+        // mismatch warning even though the values are visually identical.
         return {
-          x1: 200 + Math.cos(a) * r1,
-          y1: 200 + Math.sin(a) * r1,
-          x2: 200 + Math.cos(a) * r2,
-          y2: 200 + Math.sin(a) * r2,
+          x1: (200 + Math.cos(a) * r1).toFixed(4),
+          y1: (200 + Math.sin(a) * r1).toFixed(4),
+          x2: (200 + Math.cos(a) * r2).toFixed(4),
+          y2: (200 + Math.sin(a) * r2).toFixed(4),
           key: i,
           major: i % 6 === 0,
+        };
+      }),
+    [],
+  );
+
+  // A small decorative ring of ticks around the tap-gate seal, echoing
+  // the larger mandala further out — makes the gate read as a designed
+  // object rather than a placeholder screen.
+  const gateTicks = useMemo(
+    () =>
+      Array.from({ length: GATE_TICKS }).map((_, i) => {
+        const a = (i / GATE_TICKS) * Math.PI * 2;
+        const r1 = 58;
+        const r2 = i % 5 === 0 ? 48 : 53;
+        return {
+          x1: (60 + Math.cos(a) * r1).toFixed(3),
+          y1: (60 + Math.sin(a) * r1).toFixed(3),
+          x2: (60 + Math.cos(a) * r2).toFixed(3),
+          y2: (60 + Math.sin(a) * r2).toFixed(3),
+          key: i,
+          major: i % 5 === 0,
         };
       }),
     [],
@@ -260,34 +228,14 @@ export default function IntroScene({
       aria-hidden={fadingOut}
       className={`intro${reduced ? " intro--reduced" : ""}${
         fadingOut ? " intro--closing" : ""
-      }`}
+      }${started ? " intro--started" : ""}`}
     >
-      {musicSrc ? (
-        <>
-          {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
-          <audio ref={audioRef} src={musicSrc} preload="auto" />
-          {needsTapForSound && !fadingOut ? (
-            <button
-              type="button"
-              className="intro-sound-hint"
-              onClick={() => {
-                audioRef.current?.play().then(() => {
-                  setNeedsTapForSound(false);
-                  fadeAudioTo(musicVolume, 1200);
-                });
-              }}
-            >
-              ♪ Дуу нээх
-            </button>
-          ) : null}
-        </>
-      ) : null}
-
+      {/* ---- Ambient backdrop: alive from the very first frame, on the
+          gate screen as much as during the reveal ---- */}
       {!reduced && (
         <>
           <div className="intro-vignette" />
 
-          {/* Faint rotating mandala backdrop, present the whole time */}
           <svg
             className="intro-mandala"
             viewBox="0 0 400 400"
@@ -326,6 +274,84 @@ export default function IntroScene({
             />
           </svg>
 
+          <div className="intro-dust">
+            {dust.map((d) => (
+              <span
+                key={d.key}
+                className="dust-mote"
+                style={{
+                  left: `${d.left}%`,
+                  top: `${d.top}%`,
+                  width: d.size,
+                  height: d.size,
+                  animationDelay: `${d.delay}s`,
+                  animationDuration: `${d.duration}s`,
+                }}
+              />
+            ))}
+          </div>
+
+          <div className="intro-corners" aria-hidden>
+            <span className="corner-flourish corner-flourish--tl" />
+            <span className="corner-flourish corner-flourish--tr" />
+            <span className="corner-flourish corner-flourish--bl" />
+            <span className="corner-flourish corner-flourish--br" />
+          </div>
+        </>
+      )}
+
+      {/* ---- Tap gate: a small designed seal, not a blank screen ---- */}
+      {!started && (
+        <button
+          type="button"
+          className="intro-gate"
+          onClick={beginIntro}
+          aria-label="Дарж нээх"
+        >
+          <span className="intro-gate-glow" />
+          <span className="intro-gate-seal">
+            <svg
+              className="intro-gate-ticks"
+              viewBox="0 0 120 120"
+              xmlns="http://www.w3.org/2000/svg"
+              aria-hidden
+            >
+              {gateTicks.map((t) => (
+                <line
+                  key={t.key}
+                  x1={t.x1}
+                  y1={t.y1}
+                  x2={t.x2}
+                  y2={t.y2}
+                  stroke="#f3d9a4"
+                  strokeWidth={t.major ? 1.1 : 0.6}
+                  opacity={t.major ? 0.8 : 0.45}
+                />
+              ))}
+              <circle
+                cx="60"
+                cy="60"
+                r="58"
+                fill="none"
+                stroke="#f3d9a4"
+                strokeWidth="0.6"
+                opacity="0.5"
+              />
+            </svg>
+            <span className="intro-gate-initials">{coupleInitials ?? "♥"}</span>
+          </span>
+          <span className="intro-gate-welcome">Тавтай морилно уу</span>
+          <span className="intro-gate-hint">
+            Дарж нээнэ үү
+            <span className="intro-gate-chevron" aria-hidden>
+              ﹀
+            </span>
+          </span>
+        </button>
+      )}
+
+      {started && !reduced && (
+        <>
           {/* Duality backdrop: sky above, fire below */}
           <div className="intro-sky" />
           <div className="intro-hearth" />
@@ -460,23 +486,6 @@ export default function IntroScene({
             ))}
           </div>
 
-          <div className="intro-dust">
-            {dust.map((d) => (
-              <span
-                key={d.key}
-                className="dust-mote"
-                style={{
-                  left: `${d.left}%`,
-                  top: `${d.top}%`,
-                  width: d.size,
-                  height: d.size,
-                  animationDelay: `${d.delay}s`,
-                  animationDuration: `${d.duration}s`,
-                }}
-              />
-            ))}
-          </div>
-
           <div className="intro-glints">
             {glints.map((g) => (
               <span
@@ -517,66 +526,44 @@ export default function IntroScene({
             ))}
           </div>
 
-          {/* Ornamental corner brackets, framing the whole scene */}
-          <div className="intro-corners" aria-hidden>
-            <span className="corner-flourish corner-flourish--tl" />
-            <span className="corner-flourish corner-flourish--tr" />
-            <span className="corner-flourish corner-flourish--bl" />
-            <span className="corner-flourish corner-flourish--br" />
-          </div>
-
           <div className="intro-sweep" />
           <div className="intro-bloom" />
         </>
       )}
 
-      <div className="intro-logo">
-        {coupleInitials ? (
-          <span className="intro-initials">{coupleInitials}</span>
-        ) : null}
-        <span className="intro-rule" />
-        <span className="intro-names">
-          {coupleNames.split("").map((ch, i) => (
-            <span
-              key={i}
-              className="intro-char"
-              style={{ animationDelay: `${5.1 + i * 0.026}s` }}
-            >
-              {ch === " " ? "\u00A0" : ch}
-            </span>
-          ))}
-        </span>
-      </div>
+      {started && (
+        <div className="intro-logo">
+          {coupleInitials ? (
+            <span className="intro-initials">{coupleInitials}</span>
+          ) : null}
+          <span className="intro-rule" />
+          <span className="intro-names">
+            {coupleNames.split("").map((ch, i) => (
+              <span
+                key={i}
+                className="intro-char"
+                style={{ animationDelay: `${7.14 + i * 0.0364}s` }}
+              >
+                {ch === " " ? "\u00A0" : ch}
+              </span>
+            ))}
+          </span>
+        </div>
+      )}
+
+      {started && onSkip && (
+        <button
+          type="button"
+          className="intro-skip"
+          onClick={handleSkip}
+          aria-label="Алгасах"
+        >
+          Алгасах →
+        </button>
+      )}
 
       <div className="intro-close-iris" />
       <style jsx>{`
-        .intro-sound-hint {
-          position: absolute;
-          top: 24px;
-          left: 50%;
-          transform: translateX(-50%);
-          z-index: 12;
-          background: rgba(15, 10, 8, 0.55);
-          border: 1px solid rgba(230, 190, 130, 0.4);
-          color: #f3d9a4;
-          font-family: "PT Sans", sans-serif;
-          font-size: 0.72rem;
-          letter-spacing: 0.14em;
-          text-transform: uppercase;
-          padding: 8px 16px;
-          border-radius: 999px;
-          cursor: pointer;
-          animation: sound-hint-pulse 1.8s ease-in-out infinite;
-        }
-        @keyframes sound-hint-pulse {
-          0%,
-          100% {
-            opacity: 0.75;
-          }
-          50% {
-            opacity: 1;
-          }
-        }
         .intro {
           position: fixed;
           inset: 0;
@@ -585,6 +572,278 @@ export default function IntroScene({
           overflow: hidden;
           pointer-events: auto;
         }
+
+        /* ================= Ambient backdrop (always on) ================= */
+        .intro-vignette {
+          position: absolute;
+          inset: 0;
+          background: radial-gradient(
+            ellipse at 50% 55%,
+            transparent 40%,
+            rgba(0, 0, 0, 0.6) 100%
+          );
+          z-index: 1;
+        }
+        .intro-mandala {
+          position: absolute;
+          left: 50%;
+          top: 52%;
+          width: min(120vw, 640px);
+          height: min(120vw, 640px);
+          transform: translate(-50%, -50%);
+          opacity: 0;
+          z-index: 0;
+          animation:
+            mandala-in 2s ease 0.15s forwards,
+            mandala-spin 110s linear infinite;
+        }
+        @keyframes mandala-in {
+          to {
+            opacity: 0.45;
+          }
+        }
+        @keyframes mandala-spin {
+          from {
+            transform: translate(-50%, -50%) rotate(0deg);
+          }
+          to {
+            transform: translate(-50%, -50%) rotate(360deg);
+          }
+        }
+        .intro-dust {
+          position: absolute;
+          inset: 0;
+          z-index: 1;
+        }
+        .dust-mote {
+          position: absolute;
+          border-radius: 50%;
+          background: #ffe9c2;
+          opacity: 0;
+          animation-name: dust-twinkle;
+          animation-timing-function: ease-in-out;
+          animation-iteration-count: infinite;
+        }
+        @keyframes dust-twinkle {
+          0%,
+          100% {
+            opacity: 0;
+            transform: scale(0.6);
+          }
+          50% {
+            opacity: 0.7;
+            transform: scale(1.3);
+          }
+        }
+        .intro-corners {
+          position: absolute;
+          inset: 0;
+          z-index: 4;
+          pointer-events: none;
+        }
+        .corner-flourish {
+          position: absolute;
+          width: 64px;
+          height: 64px;
+          opacity: 0;
+          animation: corner-in 1.2s ease 0.5s forwards;
+        }
+        .corner-flourish::before {
+          content: "";
+          position: absolute;
+          inset: 0;
+        }
+        .corner-flourish--tl {
+          top: 22px;
+          left: 22px;
+        }
+        .corner-flourish--tl::before {
+          border-top: 1px solid rgba(243, 217, 164, 0.4);
+          border-left: 1px solid rgba(243, 217, 164, 0.4);
+        }
+        .corner-flourish--tr {
+          top: 22px;
+          right: 22px;
+        }
+        .corner-flourish--tr::before {
+          border-top: 1px solid rgba(243, 217, 164, 0.4);
+          border-right: 1px solid rgba(243, 217, 164, 0.4);
+        }
+        .corner-flourish--bl {
+          bottom: 22px;
+          left: 22px;
+        }
+        .corner-flourish--bl::before {
+          border-bottom: 1px solid rgba(243, 217, 164, 0.4);
+          border-left: 1px solid rgba(243, 217, 164, 0.4);
+        }
+        .corner-flourish--br {
+          bottom: 22px;
+          right: 22px;
+        }
+        .corner-flourish--br::before {
+          border-bottom: 1px solid rgba(243, 217, 164, 0.4);
+          border-right: 1px solid rgba(243, 217, 164, 0.4);
+        }
+        @keyframes corner-in {
+          to {
+            opacity: 1;
+          }
+        }
+
+        /* ================= Tap gate — a small designed seal ================= */
+        .intro-gate {
+          position: absolute;
+          inset: 0;
+          z-index: 20;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          gap: 20px;
+          background: radial-gradient(
+            ellipse at 50% 55%,
+            rgba(26, 18, 12, 0.35) 0%,
+            rgba(11, 7, 6, 0.75) 70%
+          );
+          border: none;
+          cursor: pointer;
+          -webkit-tap-highlight-color: transparent;
+          animation: gate-in 900ms ease both;
+        }
+        @keyframes gate-in {
+          from {
+            opacity: 0;
+          }
+          to {
+            opacity: 1;
+          }
+        }
+        .intro-gate-glow {
+          position: absolute;
+          width: 260px;
+          height: 260px;
+          border-radius: 50%;
+          background: radial-gradient(
+            circle,
+            rgba(255, 207, 122, 0.22) 0%,
+            transparent 70%
+          );
+          filter: blur(6px);
+          animation: gate-glow-pulse 3.4s ease-in-out infinite;
+          pointer-events: none;
+        }
+        @keyframes gate-glow-pulse {
+          0%,
+          100% {
+            opacity: 0.6;
+            transform: scale(0.94);
+          }
+          50% {
+            opacity: 1;
+            transform: scale(1.05);
+          }
+        }
+        .intro-gate-seal {
+          position: relative;
+          width: 120px;
+          height: 120px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          animation: gate-seal-breathe 4s ease-in-out infinite;
+        }
+        @keyframes gate-seal-breathe {
+          0%,
+          100% {
+            transform: scale(1);
+          }
+          50% {
+            transform: scale(1.035);
+          }
+        }
+        .intro-gate-ticks {
+          position: absolute;
+          top: 60px;
+          left: 60px;
+          width: 100%;
+          height: 100%;
+          animation: mandala-spin 70s linear infinite reverse;
+        }
+        .intro-gate-initials {
+          position: relative;
+          font-family: "Cormorant Garamond", serif;
+          font-style: italic;
+          font-weight: 600;
+          font-size: 1.55rem;
+          letter-spacing: 0.06em;
+          color: #f3d9a4;
+          text-shadow: 0 0 22px rgba(255, 190, 110, 0.55);
+        }
+        .intro-gate-welcome {
+          font-family: "Cormorant Garamond", serif;
+          font-style: italic;
+          font-size: 1.05rem;
+          letter-spacing: 0.04em;
+          color: #e9d9bd;
+          opacity: 0.9;
+          animation: gate-text-in 900ms ease 200ms both;
+        }
+        .intro-gate-hint {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          font-family: "PT Sans", sans-serif;
+          font-size: 0.72rem;
+          letter-spacing: 0.26em;
+          text-transform: uppercase;
+          color: #e6c68b;
+          opacity: 0.85;
+          animation:
+            gate-text-in 900ms ease 400ms both,
+            gate-hint-pulse 2s ease-in-out 1.3s infinite;
+        }
+        .intro-gate-chevron {
+          display: inline-block;
+          font-size: 0.9em;
+          transform: translateY(-1px);
+          animation: gate-chevron-bounce 1.6s ease-in-out 1.3s infinite;
+        }
+        @keyframes gate-text-in {
+          from {
+            opacity: 0;
+            transform: translateY(6px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+        @keyframes gate-hint-pulse {
+          0%,
+          100% {
+            opacity: 0.6;
+          }
+          50% {
+            opacity: 1;
+          }
+        }
+        @keyframes gate-chevron-bounce {
+          0%,
+          100% {
+            transform: translateY(0);
+            opacity: 0.7;
+          }
+          50% {
+            transform: translateY(4px);
+            opacity: 1;
+          }
+        }
+        .intro--started .intro-gate,
+        .intro--closing .intro-gate {
+          display: none;
+        }
+
         .intro--closing .intro-logo,
         .intro--closing .intro-rings,
         .intro--closing .intro-hearth,
@@ -621,46 +880,7 @@ export default function IntroScene({
           opacity: 0;
         }
 
-        .intro-vignette {
-          position: absolute;
-          inset: 0;
-          background: radial-gradient(
-            ellipse at 50% 55%,
-            transparent 40%,
-            rgba(0, 0, 0, 0.6) 100%
-          );
-          z-index: 1;
-        }
-
-        /* ---- Faint rotating mandala, present from the start ---- */
-        .intro-mandala {
-          position: absolute;
-          left: 50%;
-          top: 52%;
-          width: min(120vw, 640px);
-          height: min(120vw, 640px);
-          transform: translate(-50%, -50%);
-          opacity: 0;
-          z-index: 0;
-          animation:
-            mandala-in 1.8s ease 0.2s forwards,
-            mandala-spin 100s linear infinite;
-        }
-        @keyframes mandala-in {
-          to {
-            opacity: 0.5;
-          }
-        }
-        @keyframes mandala-spin {
-          from {
-            transform: translate(-50%, -50%) rotate(0deg);
-          }
-          to {
-            transform: translate(-50%, -50%) rotate(360deg);
-          }
-        }
-
-        /* ---- Duality: sky above, fire below ---- */
+        /* ================= Duality: sky above, fire below ================= */
         .intro-sky {
           position: absolute;
           left: 50%;
@@ -680,8 +900,8 @@ export default function IntroScene({
           opacity: 0;
           filter: blur(4px);
           animation:
-            sky-descend 2.4s ease-out 0.3s forwards,
-            sky-flicker 3s ease-in-out 2s infinite;
+            sky-descend 3.2s ease-out 0.4s forwards,
+            sky-flicker 3.6s ease-in-out 3s infinite;
         }
         @keyframes sky-descend {
           0% {
@@ -703,7 +923,7 @@ export default function IntroScene({
           }
         }
 
-        /* ---- Radiant rays ---- */
+        /* ================= Radiant rays unfurling from center ================= */
         .intro-rays {
           position: absolute;
           left: 50%;
@@ -726,7 +946,7 @@ export default function IntroScene({
             transparent 75%
           );
           opacity: 0;
-          animation: ray-unfurl 1.6s ease-out forwards;
+          animation: ray-unfurl 2.24s ease-out forwards;
         }
         @keyframes ray-unfurl {
           0% {
@@ -742,7 +962,7 @@ export default function IntroScene({
           }
         }
 
-        /* ---- Motes converging toward the center ---- */
+        /* ================= Motes converging toward the center ================= */
         .intro-converge {
           position: absolute;
           left: 50%;
@@ -795,7 +1015,7 @@ export default function IntroScene({
           }
         }
 
-        /* ---- Two interlocking rings ---- */
+        /* ================= Two interlocking rings ================= */
         .intro-rings {
           position: absolute;
           left: 50%;
@@ -804,7 +1024,7 @@ export default function IntroScene({
           height: min(65vw, 342px);
           transform: translate(-50%, -50%) scale(0.94);
           opacity: 0;
-          animation: rings-hold 0.6s ease 1.9s forwards;
+          animation: rings-hold 0.84s ease 2.66s forwards;
           z-index: 2;
         }
         @keyframes rings-hold {
@@ -821,13 +1041,13 @@ export default function IntroScene({
         }
         .ring-trace--gold {
           animation-name: ring-draw;
-          animation-duration: 1.5s;
-          animation-delay: 0.1s;
+          animation-duration: 2.1s;
+          animation-delay: 0.14s;
         }
         .ring-trace--sky {
           animation-name: ring-draw;
-          animation-duration: 1.5s;
-          animation-delay: 0.55s;
+          animation-duration: 2.1s;
+          animation-delay: 0.77s;
           filter: drop-shadow(0 0 5px rgba(150, 220, 255, 0.4));
         }
         @keyframes ring-draw {
@@ -836,7 +1056,7 @@ export default function IntroScene({
           }
         }
 
-        /* ---- Burst where the rings cross (the union) ---- */
+        /* ================= Burst where the rings cross (the union) ================= */
         .intro-burst-flash {
           position: absolute;
           left: 50%;
@@ -856,7 +1076,7 @@ export default function IntroScene({
           );
           opacity: 0;
           z-index: 2;
-          animation: burst-flash 0.7s ease-out 2.5s forwards;
+          animation: burst-flash 0.98s ease-out 3.5s forwards;
         }
         @keyframes burst-flash {
           0% {
@@ -883,7 +1103,7 @@ export default function IntroScene({
           transform: translate(-50%, -50%) scale(0.4);
           opacity: 0;
           z-index: 2;
-          animation: shockwave-out 1.1s cubic-bezier(0.2, 0.7, 0.3, 1) 2.55s
+          animation: shockwave-out 1.54s cubic-bezier(0.2, 0.7, 0.3, 1) 3.57s
             forwards;
         }
         @keyframes shockwave-out {
@@ -915,7 +1135,7 @@ export default function IntroScene({
           opacity: 0;
           animation-name: spark-fire;
           animation-timing-function: ease-out;
-          animation-duration: 0.85s;
+          animation-duration: 1.19s;
           animation-fill-mode: forwards;
         }
         .spark--gold {
@@ -948,7 +1168,7 @@ export default function IntroScene({
           }
         }
 
-        /* ---- Pillar of light joining hearth and sky ---- */
+        /* ================= Pillar of light joining hearth and sky ================= */
         .intro-pillar {
           position: absolute;
           left: 50%;
@@ -967,8 +1187,8 @@ export default function IntroScene({
           opacity: 0;
           z-index: 2;
           animation:
-            pillar-rise 1.3s cubic-bezier(0.2, 0.8, 0.2, 1) 2.55s forwards,
-            pillar-fade 0.9s ease 3.85s forwards;
+            pillar-rise 1.82s cubic-bezier(0.2, 0.8, 0.2, 1) 3.57s forwards,
+            pillar-fade 1.26s ease 5.39s forwards;
         }
         @keyframes pillar-rise {
           0% {
@@ -989,7 +1209,7 @@ export default function IntroScene({
           }
         }
 
-        /* ---- Hearth glow (earth / fire, below) ---- */
+        /* ================= Hearth glow (earth / fire, below) ================= */
         .intro-hearth {
           position: absolute;
           left: 50%;
@@ -1009,8 +1229,8 @@ export default function IntroScene({
           opacity: 0;
           filter: blur(3px);
           animation:
-            hearth-rise 2.4s ease-out 0.5s forwards,
-            hearth-flicker 2.6s ease-in-out 2s infinite;
+            hearth-rise 3.2s ease-out 0.7s forwards,
+            hearth-flicker 3.2s ease-in-out 3s infinite;
         }
         .intro-hearth-core {
           position: absolute;
@@ -1032,8 +1252,8 @@ export default function IntroScene({
           filter: blur(1px);
           mix-blend-mode: screen;
           animation:
-            core-pulse 2.2s ease-out 1.1s forwards,
-            hearth-flicker 1.9s ease-in-out 2.6s infinite;
+            core-pulse 2.8s ease-out 1.5s forwards,
+            hearth-flicker 2.4s ease-in-out 3.6s infinite;
         }
         @keyframes hearth-rise {
           0% {
@@ -1065,7 +1285,7 @@ export default function IntroScene({
           }
         }
 
-        /* ---- Flame licks ---- */
+        /* ================= Flame licks ================= */
         .intro-flame {
           position: absolute;
           left: 50%;
@@ -1094,24 +1314,24 @@ export default function IntroScene({
           height: 60px;
           transform: translateX(-50%);
           animation:
-            flame-a-in 1.4s ease 2.9s forwards,
-            flame-flicker 1.8s ease-in-out 4.3s infinite;
+            flame-a-in 1.96s ease 4.06s forwards,
+            flame-flicker 2.2s ease-in-out 6.02s infinite;
         }
         .flame-lick--b {
           width: 18px;
           height: 42px;
           transform: translate(-140%, 6px);
           animation:
-            flame-b-in 1.4s ease 3.1s forwards,
-            flame-flicker 1.5s ease-in-out 4.5s infinite;
+            flame-b-in 1.96s ease 4.34s forwards,
+            flame-flicker 1.9s ease-in-out 6.3s infinite;
         }
         .flame-lick--c {
           width: 18px;
           height: 42px;
           transform: translate(40%, 6px);
           animation:
-            flame-c-in 1.4s ease 3.2s forwards,
-            flame-flicker 1.7s ease-in-out 4.6s infinite;
+            flame-c-in 1.96s ease 4.48s forwards,
+            flame-flicker 2.1s ease-in-out 6.44s infinite;
         }
         @keyframes flame-a-in {
           0% {
@@ -1156,7 +1376,7 @@ export default function IntroScene({
           }
         }
 
-        /* ---- Embers ---- */
+        /* ================= Embers ================= */
         .intro-embers {
           position: absolute;
           inset: 0;
@@ -1191,34 +1411,7 @@ export default function IntroScene({
           }
         }
 
-        /* ---- Gold dust shimmer (present from the very start) ---- */
-        .intro-dust {
-          position: absolute;
-          inset: 0;
-          z-index: 1;
-        }
-        .dust-mote {
-          position: absolute;
-          border-radius: 50%;
-          background: #ffe9c2;
-          opacity: 0;
-          animation-name: dust-twinkle;
-          animation-timing-function: ease-in-out;
-          animation-iteration-count: infinite;
-        }
-        @keyframes dust-twinkle {
-          0%,
-          100% {
-            opacity: 0;
-            transform: scale(0.6);
-          }
-          50% {
-            opacity: 0.7;
-            transform: scale(1.3);
-          }
-        }
-
-        /* ---- Bright four-point glints near the rings ---- */
+        /* ================= Bright four-point glints near the rings ================= */
         .intro-glints {
           position: absolute;
           inset: 0;
@@ -1254,7 +1447,7 @@ export default function IntroScene({
           }
         }
 
-        /* ---- Drifting gold petals ---- */
+        /* ================= Drifting gold petals ================= */
         .intro-petals {
           position: absolute;
           inset: 0;
@@ -1284,64 +1477,7 @@ export default function IntroScene({
           }
         }
 
-        /* ---- Ornamental corner brackets ---- */
-        .intro-corners {
-          position: absolute;
-          inset: 0;
-          z-index: 4;
-          pointer-events: none;
-        }
-        .corner-flourish {
-          position: absolute;
-          width: 64px;
-          height: 64px;
-          opacity: 0;
-          animation: corner-in 1s ease 0.7s forwards;
-        }
-        .corner-flourish::before {
-          content: "";
-          position: absolute;
-          inset: 0;
-        }
-        .corner-flourish--tl {
-          top: 22px;
-          left: 22px;
-        }
-        .corner-flourish--tl::before {
-          border-top: 1px solid rgba(243, 217, 164, 0.4);
-          border-left: 1px solid rgba(243, 217, 164, 0.4);
-        }
-        .corner-flourish--tr {
-          top: 22px;
-          right: 22px;
-        }
-        .corner-flourish--tr::before {
-          border-top: 1px solid rgba(243, 217, 164, 0.4);
-          border-right: 1px solid rgba(243, 217, 164, 0.4);
-        }
-        .corner-flourish--bl {
-          bottom: 22px;
-          left: 22px;
-        }
-        .corner-flourish--bl::before {
-          border-bottom: 1px solid rgba(243, 217, 164, 0.4);
-          border-left: 1px solid rgba(243, 217, 164, 0.4);
-        }
-        .corner-flourish--br {
-          bottom: 22px;
-          right: 22px;
-        }
-        .corner-flourish--br::before {
-          border-bottom: 1px solid rgba(243, 217, 164, 0.4);
-          border-right: 1px solid rgba(243, 217, 164, 0.4);
-        }
-        @keyframes corner-in {
-          to {
-            opacity: 1;
-          }
-        }
-
-        /* ---- Light sweep across the frame ---- */
+        /* ================= Light sweep across the frame ================= */
         .intro-sweep {
           position: absolute;
           inset: -20% -50%;
@@ -1353,7 +1489,7 @@ export default function IntroScene({
           );
           opacity: 0;
           transform: translateX(-30%);
-          animation: sweep-pass 1.4s ease-out 3.3s forwards;
+          animation: sweep-pass 1.96s ease-out 4.62s forwards;
         }
         @keyframes sweep-pass {
           0% {
@@ -1372,7 +1508,7 @@ export default function IntroScene({
           }
         }
 
-        /* ---- Full bloom before settle ---- */
+        /* ================= Full bloom before settle ================= */
         .intro-bloom {
           position: absolute;
           inset: 0;
@@ -1383,7 +1519,7 @@ export default function IntroScene({
             transparent 68%
           );
           opacity: 0;
-          animation: bloom-fill 1.7s ease-in 4s forwards;
+          animation: bloom-fill 2.38s ease-in 5.6s forwards;
         }
         @keyframes bloom-fill {
           0% {
@@ -1394,7 +1530,7 @@ export default function IntroScene({
           }
         }
 
-        /* ---- Monogram + names ---- */
+        /* ================= Monogram + names ================= */
         .intro-logo {
           position: absolute;
           inset: 0;
@@ -1407,8 +1543,8 @@ export default function IntroScene({
           opacity: 0;
           filter: blur(6px);
           animation:
-            logo-in 1.1s ease 4.55s forwards,
-            logo-breathe 3.4s ease-in-out 5.8s infinite;
+            logo-in 1.54s ease 6.37s forwards,
+            logo-breathe 4.2s ease-in-out 8.12s infinite;
         }
         .intro--reduced .intro-logo {
           opacity: 1;
@@ -1453,7 +1589,7 @@ export default function IntroScene({
             rgba(230, 190, 130, 0.8),
             transparent
           );
-          animation: rule-grow 900ms ease 4.8s forwards;
+          animation: rule-grow 1.26s ease 6.72s forwards;
         }
         .intro-rule::before,
         .intro-rule::after {
@@ -1465,14 +1601,14 @@ export default function IntroScene({
           background: #f3d9a4;
           transform: translateY(-50%) rotate(45deg) scale(0);
           box-shadow: 0 0 6px rgba(243, 217, 164, 0.7);
-          animation: rule-spark-in 500ms ease 5.6s forwards;
+          animation: rule-spark-in 500ms ease 7.84s forwards;
         }
         .intro-rule::before {
           left: -3px;
         }
         .intro-rule::after {
           right: -3px;
-          animation-delay: 5.7s;
+          animation-delay: 7.98s;
         }
         @keyframes rule-spark-in {
           to {
@@ -1560,7 +1696,10 @@ export default function IntroScene({
           .glint,
           .petal,
           .converge-mote,
-          .corner-flourish {
+          .corner-flourish,
+          .intro-gate-glow,
+          .intro-gate-seal,
+          .intro-gate-ticks {
             animation: none !important;
             opacity: 0 !important;
           }
