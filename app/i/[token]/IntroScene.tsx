@@ -12,7 +12,7 @@ const BURST_COUNT = 30;
 
 export default function IntroScene({
   coupleInitials,
-  coupleNames = "Мөнгөншагай & Пүрэвням",
+  coupleNames = "Эрдэнэмандал & Чанцалдулам",
   onDone,
   onSkip,
 }: {
