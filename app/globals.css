@@ -1,0 +1,45 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: "PT Serif", serif;
+}
+
+/* Ханын хана (khana) торон хээ — бүтэц/архитектурын шинж тэмдэг.
+   Зөвхөн admin login болон landing дэвсгэрт нам дуугаар ашиглана. */
+.bg-lattice {
+  background-image: repeating-linear-gradient(
+      55deg,
+      rgba(201, 162, 75, 0.14) 0px,
+      rgba(201, 162, 75, 0.14) 1px,
+      transparent 1px,
+      transparent 34px
+    ),
+    repeating-linear-gradient(
+      -55deg,
+      rgba(201, 162, 75, 0.14) 0px,
+      rgba(201, 162, 75, 0.14) 1px,
+      transparent 1px,
+      transparent 34px
+    );
+}
+
+/* Ноосон дэвсгэр дээрх оёдол — өгөгдлийн хэсгүүдийг тусгаарлана. */
+.stitch {
+  border-top-width: 1px;
+  border-top-style: dashed;
+  border-top-color: rgba(201, 162, 75, 0.45);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

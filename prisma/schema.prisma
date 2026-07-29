@@ -1,0 +1,20 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Guest {
+  id          String    @id @default(cuid())
+  name        String
+  description String?
+  side        String?
+  token       String    @unique
+  createdAt   DateTime  @default(now())
+  viewedAt    DateTime?
+
+  @@index([token])
+}
