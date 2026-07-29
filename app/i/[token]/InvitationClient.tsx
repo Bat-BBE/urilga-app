@@ -1485,7 +1485,6 @@ export default function InvitationClient({ name }: { name: string }) {
           padding: 0 32px;
         }
 
-        /* ----- ЗОЧНЫ УРИЛГА (personal invitation hero) ----- */
         .invite-card {
           position: relative;
 
