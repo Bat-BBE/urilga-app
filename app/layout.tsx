@@ -2,8 +2,16 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://urilga-app.vercel.app/"),
+
   title: "Урилга",
   description: "Хурим найрын дижитал урилга",
+
+  openGraph: {
+    title: "Урилга",
+    description: "Хурим найрын дижитал урилга",
+    images: ["/images/share-image.png"],
+  },
 };
 
 export default function RootLayout({
