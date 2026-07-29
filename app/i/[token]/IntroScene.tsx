@@ -22,9 +22,7 @@ export default function IntroScene({
 }: {
   coupleInitials?: string;
   coupleNames?: string;
-  /** Optional path to a background music file, e.g. "/music/wedding-theme.mp3" */
   musicSrc?: string;
-  /** Target volume for the music once it has faded in (0 - 1) */
   musicVolume?: number;
   onDone: () => void;
   onSkip?: () => void;
