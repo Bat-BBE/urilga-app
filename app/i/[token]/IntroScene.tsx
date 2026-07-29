@@ -14,7 +14,7 @@ const MANDALA_TICKS = 24;
 
 export default function IntroScene({
   coupleInitials,
-  coupleNames = "Мөнгөншагай & Пүрэвням",
+  coupleNames = "Эрдэнэмандал & Чанцалдулам",
   musicSrc,
   musicVolume = 0.55,
   onDone,

@@ -6,7 +6,7 @@ export default async function AdminPage() {
     orderBy: { createdAt: "desc" },
   });
 
-  console.log("Guests:", guests.length, guests);
+  // console.log("Guests:", guests.length, guests);
 
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL ?? "http://localhost:3000";
 
