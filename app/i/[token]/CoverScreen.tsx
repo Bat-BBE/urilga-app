@@ -23,9 +23,6 @@ export default function CoverScreen({
   function handleOpen() {
     if (opening) return;
     setOpening(true);
-
-    // The tap is a genuine user gesture, so this is guaranteed to be
-    // allowed to play — no "tap to enable sound" fallback needed here.
     play(musicVolume, 900);
 
     setTimeout(onOpen, 1000);
@@ -33,11 +30,6 @@ export default function CoverScreen({
 
   const [first, second] = coupleNames.split("&").map((s) => s.trim());
 
-  // Deterministic pseudo-random sparkle layout — Math.random() during render
-  // causes a server/client markup mismatch in Next.js (the server renders one
-  // set of positions, the client renders another). useMemo + a seeded formula
-  // keeps the values stable across the hydration boundary while still
-  // looking scattered.
   const sparkles = useMemo(
     () =>
       Array.from({ length: 22 }).map((_, i) => {
@@ -67,7 +59,6 @@ export default function CoverScreen({
         <div className="radial-glow glow--br" />
         <div className="radial-glow glow--center" />
 
-        {/* Хээнүүд */}
         <div className="motif motif--tl">
           <CircularMotif size={320} opacity={0.14} />
         </div>
@@ -103,13 +94,6 @@ export default function CoverScreen({
       </div>
 
       <div className="cover-stack">
-        {/* <span className="corner-hee">
-          <img
-            src="/images/hee.png"
-            alt="Ornament"
-            className="absolute top-14 left-[136px] w-32 h-32 object-contain pointer-events-none"
-          />
-        </span> */}
         <div className="cover-frame">
           <div className="frame-glow" />
           <span className="corner corner--tl">

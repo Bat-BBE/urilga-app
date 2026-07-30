@@ -3,8 +3,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useMusic } from "./MusicProvider";
 
-// The whole reveal sequence (rings tracing, burst, pillar, flame, names)
-// now runs ~11s after the tap — slow and ceremonial rather than rushed.
 const TOTAL_MS = 11000;
 const EMBER_COUNT = 20;
 const DUST_COUNT = 26;
@@ -25,7 +23,6 @@ export default function IntroScene({
 }: {
   coupleInitials?: string;
   coupleNames?: string;
-  /** Target volume for the music once it has faded in (0 - 1) */
   musicVolume?: number;
   onDone: () => void;
   onSkip?: () => void;
@@ -33,12 +30,6 @@ export default function IntroScene({
   const [fadingOut, setFadingOut] = useState(false);
   const [reduced, setReduced] = useState(false);
 
-  // The big ceremonial sequence — and the music — only begin once the
-  // visitor has actually tapped. Browsers refuse to play audio (and we
-  // don't want the "show" to run silently) until there has been a real
-  // user gesture, so we gate the reveal behind a single tap. The soft
-  // ambient background (mandala, dust, corner frame) runs the whole
-  // time regardless, so the gate screen never feels empty.
   const [started, setStarted] = useState(false);
 
   const { play } = useMusic();
@@ -56,18 +47,11 @@ export default function IntroScene({
       setTimeout(onDone, reduced ? 200 : 750);
     }, total);
     return () => clearTimeout(doneTimer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [started, reduced]);
-
-  // Note: music is intentionally left playing when IntroScene closes —
-  // it's meant to carry on into the rest of the invitation. Call
-  // useMusic().fadeOut() from wherever the site's music should actually end.
 
   function beginIntro() {
     if (started) return;
     setStarted(true);
-    // Called directly from a click/tap handler — this is the user
-    // gesture browsers require before they'll allow audio.play().
     play(musicVolume, 1800);
   }
 
@@ -104,7 +88,6 @@ export default function IntroScene({
     [],
   );
 
-  // Four-point glints: brighter, star-shaped twinkles scattered near center
   const glints = useMemo(
     () =>
       Array.from({ length: GLINT_COUNT }).map((_, i) => {
@@ -145,8 +128,6 @@ export default function IntroScene({
     [],
   );
 
-  // Burst sparks fired outward from the point the two rings cross —
-  // alternating gold (fire/earth) and cyan (sky) to read as one union.
   const burst = useMemo(
     () =>
       Array.from({ length: BURST_COUNT }).map((_, i) => {
@@ -162,8 +143,6 @@ export default function IntroScene({
     [],
   );
 
-  // Motes that spiral inward toward the center just before the rings
-  // appear — builds anticipation for the "coming together" moment.
   const converge = useMemo(
     () =>
       Array.from({ length: CONVERGE_COUNT }).map((_, i) => {
@@ -185,11 +164,6 @@ export default function IntroScene({
         const a = (i / MANDALA_TICKS) * Math.PI * 2;
         const r1 = 182;
         const r2 = i % 6 === 0 ? 148 : 164;
-        // Fixed to 4 decimal places so the server-rendered markup and the
-        // client's first render produce byte-identical numbers — plain
-        // Math.cos/sin values can differ in their last digit between
-        // server and browser floating point, which triggers a hydration
-        // mismatch warning even though the values are visually identical.
         return {
           x1: (200 + Math.cos(a) * r1).toFixed(4),
           y1: (200 + Math.sin(a) * r1).toFixed(4),
@@ -202,9 +176,6 @@ export default function IntroScene({
     [],
   );
 
-  // A small decorative ring of ticks around the tap-gate seal, echoing
-  // the larger mandala further out — makes the gate read as a designed
-  // object rather than a placeholder screen.
   const gateTicks = useMemo(
     () =>
       Array.from({ length: GATE_TICKS }).map((_, i) => {
@@ -230,8 +201,6 @@ export default function IntroScene({
         fadingOut ? " intro--closing" : ""
       }${started ? " intro--started" : ""}`}
     >
-      {/* ---- Ambient backdrop: alive from the very first frame, on the
-          gate screen as much as during the reveal ---- */}
       {!reduced && (
         <>
           <div className="intro-vignette" />
@@ -299,8 +268,6 @@ export default function IntroScene({
           </div>
         </>
       )}
-
-      {/* ---- Tap gate: a small designed seal, not a blank screen ---- */}
       {!started && (
         <button
           type="button"
@@ -352,12 +319,10 @@ export default function IntroScene({
 
       {started && !reduced && (
         <>
-          {/* Duality backdrop: sky above, fire below */}
           <div className="intro-sky" />
           <div className="intro-hearth" />
           <div className="intro-hearth-core" />
 
-          {/* Radiant rays unfurling from center */}
           <div className="intro-rays">
             {rays.map((r) => (
               <span
@@ -374,7 +339,6 @@ export default function IntroScene({
             ))}
           </div>
 
-          {/* Motes spiralling inward — anticipation before the rings meet */}
           <div className="intro-converge">
             {converge.map((c) => (
               <span
@@ -394,7 +358,6 @@ export default function IntroScene({
             ))}
           </div>
 
-          {/* Two interlocking rings — gold (earth/fire) and sky-blue — trace and cross */}
           <svg
             className="intro-rings"
             viewBox="0 0 320 260"
@@ -437,7 +400,6 @@ export default function IntroScene({
             />
           </svg>
 
-          {/* Burst at the point the rings cross */}
           <div className="intro-burst-flash" />
           <div className="intro-shockwave" />
           <div className="intro-burst">
@@ -458,7 +420,6 @@ export default function IntroScene({
             ))}
           </div>
 
-          {/* A pillar of light joining hearth (earth/fire) and sky — the union */}
           <div className="intro-pillar" />
 
           <div className="intro-flame">
@@ -551,17 +512,6 @@ export default function IntroScene({
         </div>
       )}
 
-      {started && onSkip && (
-        <button
-          type="button"
-          className="intro-skip"
-          onClick={handleSkip}
-          aria-label="Алгасах"
-        >
-          Алгасах →
-        </button>
-      )}
-
       <div className="intro-close-iris" />
       <style jsx>{`
         .intro {
@@ -572,8 +522,6 @@ export default function IntroScene({
           overflow: hidden;
           pointer-events: auto;
         }
-
-        /* ================= Ambient backdrop (always on) ================= */
         .intro-vignette {
           position: absolute;
           inset: 0;
