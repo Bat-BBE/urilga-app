@@ -114,7 +114,7 @@ function useAutoplaySections(active: boolean) {
 }
 
 const CONTENT = {
-  coupleNames: "Эрдэнэмандал & Чанцалдулам",
+  coupleNames: "Б.Эрдэнэмандал & Г.Чанцалдулам",
   eventLabel: "Шинэ гэрийн найр",
   isoDateTime: "2026-08-15T11:00:00+08:00",
   dateDisplay: "2026 · 08 · 15",
@@ -128,8 +128,8 @@ const CONTENT = {
   calendarMonth: 8,
   calendarDay: 15,
   hosts: [
-    { role: "Шинэ гэр бүл", names: "Эрдэнэмандал · Чанцалдулам" },
-    { role: "Охин", names: "Баяржаргал" },
+    { role: "Шинэ гэр бүл", names: "Б.Эрдэнэмандал · Г.Чанцалдулам" },
+    { role: "Охин", names: "Э.Баяржаргал" },
   ],
   contactPhone: "+976 9899 0593",
   musicSrc: "/assets/hurim_duu.mp3",
@@ -1950,7 +1950,7 @@ export default function InvitationClient({ name }: { name: string }) {
           .host-names {
             font-family: var(--font-display), serif;
             font-style: italic;
-            font-size: 1.3rem;
+            font-size: 1.2rem;
             color: var(--maroon);
           }
           .footer {
